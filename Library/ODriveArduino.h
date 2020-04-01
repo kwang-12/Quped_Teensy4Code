@@ -9,6 +9,10 @@ public:
     Stream& serial_;
     char axis0_tag_;
     char axis1_tag_;
+    int serial_num_;
+    int serial_baud_rate_;
+    int axis0_error_;
+    int axis1_error_;
 
     enum AxisState_t {
         AXIS_STATE_UNDEFINED = 0,           //<! will fall through to idle
@@ -31,7 +35,11 @@ public:
     } encoder_readings;
 
     // ODriveArduino(Stream& serial);
-    ODriveArduino(Stream& serial, char axis0_tag, char axis1_tag);  //Constructor
+    ODriveArduino(Stream& serial, int serial_num, char axis0_tag, char axis1_tag, int serial_baud_rate);  //Constructor
+
+    // Basic methods
+    bool ini();
+    void begin();
 
     // Write commands
     void SetPosition(char axis_tag, float position);
@@ -40,6 +48,7 @@ public:
 
     // Read commands
     void readEncoderData(char axis_tag);
+    void readAxisError(char axis_tag);
 
     // General params
     String readString();

@@ -2,15 +2,6 @@
 #include "Arduino.h"
 #include "ODriveArduino.h"
 
-static const int kMotorOffsetFloat = 2;
-static const int kMotorStrideFloat = 28;
-static const int kMotorOffsetInt32 = 0;
-static const int kMotorStrideInt32 = 4;
-static const int kMotorOffsetBool = 0;
-static const int kMotorStrideBool = 4;
-static const int kMotorOffsetUint16 = 0;
-static const int kMotorStrideUint16 = 2;
-
 // Print with stream operator
 template <class T>
 inline Print &operator<<(Print &obj, T arg)
@@ -26,11 +17,52 @@ inline Print &operator<<(Print &obj, float arg)
 }
 
 // Constructor
-ODriveArduino::ODriveArduino(Stream &serial, char axis0_tag, char axis1_tag)
+ODriveArduino::ODriveArduino(Stream &serial, int serial_num, char axis0_tag, char axis1_tag, int serial_baud_rate) :serial_(serial)
 {
-    serial_(serial);
+    serial_num_ = serial_num;
     axis0_tag_ = axis0_tag;
     axis1_tag_ = axis1_tag;
+    serial_baud_rate_ = serial_baud_rate;
+}
+
+bool ODriveArduino::ini()
+{
+    begin();
+    readAxisError(axis0_tag_);
+    readAxisError(axis1_tag_);
+    if (axis0_error_ == 0 && axis1_error_ == 0)
+    {
+        return true;    //ready to go
+    }
+    else return false;
+}
+
+void ODriveArduino::begin()
+{
+    switch(serial_num_)
+    {
+        case 1:
+        Serial1.begin(serial_baud_rate_);
+            break;
+        case 2:
+        Serial2.begin(serial_baud_rate_);
+            break;
+        case 3:
+        Serial3.begin(serial_baud_rate_);
+            break;
+        case 4:
+        Serial4.begin(serial_baud_rate_);
+            break;
+        case 5:
+        Serial5.begin(serial_baud_rate_);
+            break;
+        case 6:
+        Serial6.begin(serial_baud_rate_);
+            break;
+        case 7:
+        Serial7.begin(serial_baud_rate_);
+            break;
+    }
 }
 
 void ODriveArduino::SetPosition(char axis_tag, float position)
@@ -48,11 +80,11 @@ void ODriveArduino::SetPosition(char axis_tag, float position, float velocity_fe
 
     if (axis_tag == axis0_tag_)
     {
-        serial_ << "p " << 0 << " " << position << " " << velocity_feedforward << " " << current_feedforward << "\n";
+        serial_ << "p " << 0 << ' ' << position << ' ' << velocity_feedforward << ' ' << current_feedforward << '\n';
     }
     else if (axis_tag == axis1_tag_)
     {
-        serial_ << "p " << 1 << " " << position << " " << velocity_feedforward << " " << current_feedforward << "\n";
+        serial_ << "p " << 1 << ' ' << position << ' ' << velocity_feedforward << ' ' << current_feedforward << '\n';
     }
 }
 
@@ -85,6 +117,20 @@ void ODriveArduino::readEncoderData(char axis_tag='a')
         delim_pos_a = str.indexOf(' ', delim_pos_b + 1);
         encoder_readings.a1_pos_reading = str.substring(delim_pos_b + 1, delim_pos_a).toInt();
         encoder_readings.a1_velo_reading = str.substring(delim_pos_a + 1).toInt();
+    }
+}
+
+void ODriveArduino::readAxisError(char axis_tag)
+{
+    if (axis_tag == axis0_tag_)
+    {
+        serial_ << "axis0.error" << '\n';
+        axis0_error_ = readInt();
+    }
+    else if (axis_tag == axis1_tag_)
+    {
+        serial_ << "axis1.error" << '\n';
+        axis1_error_ = readInt();
     }
 }
 
