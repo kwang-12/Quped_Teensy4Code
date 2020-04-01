@@ -6,6 +6,10 @@
 
 class ODriveArduino {
 public:
+    Stream& serial_;
+    char axis0_tag_;
+    char axis1_tag_;
+
     enum AxisState_t {
         AXIS_STATE_UNDEFINED = 0,           //<! will fall through to idle
         AXIS_STATE_IDLE = 1,                //<! disable PWM and do nothing
@@ -26,29 +30,26 @@ public:
         long int a1_current_reading = 0.0;
     } encoder_readings;
 
-    ODriveArduino(Stream& serial);
-    // ODriveArduino(Stream& serial, char axis0_tag, char axis1_tag);
+    // ODriveArduino(Stream& serial);
+    ODriveArduino(Stream& serial, char axis0_tag, char axis1_tag);  //Constructor
 
-    // Commands
-    void SetPosition(int motor_number, float position);
-    void SetPosition(int motor_number, float position, float velocity_feedforward);
-    void SetPosition(int motor_number, float position, float velocity_feedforward, float current_feedforward);
-    void SetVelocity(int motor_number, float velocity);
-    void SetVelocity(int motor_number, float velocity, float current_feedforward);
-    void SetCurrent(int motor_number, float current);
-    void TrapezoidalMove(int motor_number, float position);
-    // Getters
-    float GetVelocity(int motor_number);
+    // Write commands
+    void SetPosition(char axis_tag, float position);
+    void SetPosition(char axis_tag, float position, float velocity_feedforward);
+    void SetPosition(char axis_tag, float position, float velocity_feedforward, float current_feedforward);
+
+    // Read commands
+    void readEncoderData(char axis_tag);
+
     // General params
+    String readString();
     float readFloat();
     int32_t readInt();
-    void readEncoderData(int axis_num);
+
+
     // State helper
     bool run_state(int axis, int requested_state, bool wait);
-//private:
-    String readString();
 
-    Stream& serial_;
 };
 
 #endif //ODriveArduino_h
