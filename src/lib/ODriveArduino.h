@@ -1,8 +1,4 @@
-
-#ifndef ODriveArduino_h
-#define ODriveArduino_h
-
-#include "Arduino.h"
+#include <Arduino.h>
 
 class ODriveArduino {
 public:
@@ -40,7 +36,8 @@ public:
     // Basic methods
     bool ini();
     void begin();
-
+    void EnterCommand(String command);
+    
     // Write commands
     void SetPosition(char axis_tag, float position);
     void SetPosition(char axis_tag, float position, float velocity_feedforward);
@@ -60,5 +57,3 @@ public:
     bool run_state(int axis, int requested_state, bool wait);
 
 };
-
-#endif //ODriveArduino_h

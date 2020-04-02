@@ -1,5 +1,4 @@
-
-#include "Arduino.h"
+#include <Arduino.h>
 #include "ODriveArduino.h"
 
 // Print with stream operator
@@ -65,6 +64,11 @@ void ODriveArduino::begin()
     }
 }
 
+void ODriveArduino::EnterCommand(String command)
+{
+    serial_ << command << '\n';
+}
+
 void ODriveArduino::SetPosition(char axis_tag, float position)
 {
     SetPosition(axis_tag, position, 0.0f, 0.0f);
@@ -77,7 +81,6 @@ void ODriveArduino::SetPosition(char axis_tag, float position, float velocity_fe
 
 void ODriveArduino::SetPosition(char axis_tag, float position, float velocity_feedforward, float current_feedforward)
 {
-
     if (axis_tag == axis0_tag_)
     {
         serial_ << "p " << 0 << ' ' << position << ' ' << velocity_feedforward << ' ' << current_feedforward << '\n';
