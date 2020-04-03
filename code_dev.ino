@@ -1,45 +1,51 @@
 // Libraries:
 #include "src/lib/globals.h"
 #include "src/lib/ODriveArduino.h"
+#include <Metro.h>
 
-// Development modes:
-#define DEBUG_SERIAL
-//#define NORMAL_OPERATION
+String odrv1_name = "back_KNEE";
+String odrv2_name = "back_HIP";
+String odrv3_name = "back_AB";
+String odrv4_name = "front_KNEE";
+String odrv5_name = "front_HIP";
+String odrv6_name = "front_AB";
 
-// Firmware dependent variables:
-#define SERIAL_BAUD_RATE 921600
-#define LEFT 'L'
-#define RIGHT 'R'
-
-template <class T>
-inline Print &operator<<(Print &obj, T arg)
-{
-  obj.print(arg);
-  return obj;
-}
-template <>
-inline Print &operator<<(Print &obj, float arg)
-{
-  obj.print(arg, 4);
-  return obj;
-}
 
 // ODrive object
-ODriveArduino back_KNEE(Serial1, 1, RIGHT, LEFT, SERIAL_BAUD_RATE);  //knee back, axis0-RB, axis1-LB
-ODriveArduino back_HIP(Serial2, 2, RIGHT, LEFT, SERIAL_BAUD_RATE);   //hip back, axis0-RB, axis1-LB
-ODriveArduino back_AB(Serial3, 3, LEFT, RIGHT, SERIAL_BAUD_RATE);    //ab back, axis0-LB, axis1-RB
-ODriveArduino front_KNEE(Serial4, 4, RIGHT, LEFT, SERIAL_BAUD_RATE); //knee front, axis0-RB, axis1-LB
-ODriveArduino front_HIP(Serial5, 5, LEFT, RIGHT, SERIAL_BAUD_RATE);  //hip front, axis0-LB, axis1-RB
-ODriveArduino front_AB(Serial7, 7, LEFT, RIGHT, SERIAL_BAUD_RATE);   //ab front, axis0-LB, axis1-RB
+ODriveArduino back_KNEE(Serial1, odrv1_name, 1, RIGHT, LEFT, SERIAL_BAUD_RATE);  //knee back, axis0-RB, axis1-LB
+ODriveArduino back_HIP(Serial2, odrv2_name, 2, RIGHT, LEFT, SERIAL_BAUD_RATE);   //hip back, axis0-RB, axis1-LB
+ODriveArduino back_AB(Serial3, odrv3_name, 3, LEFT, RIGHT, SERIAL_BAUD_RATE);    //ab back, axis0-LB, axis1-RB
+ODriveArduino front_KNEE(Serial4, odrv4_name, 4, RIGHT, LEFT, SERIAL_BAUD_RATE); //knee front, axis0-RB, axis1-LB
+ODriveArduino front_HIP(Serial5, odrv5_name, 5, LEFT, RIGHT, SERIAL_BAUD_RATE);  //hip front, axis0-LB, axis1-RB
+ODriveArduino front_AB(Serial7, odrv6_name, 7, LEFT, RIGHT, SERIAL_BAUD_RATE);   //ab front, axis0-LB, axis1-RB
 // Constants
 
 // Variables
 String serial_input; // store the input from computer monitor port
 char state = 'z';    // store the state of loop program. By default, 'z' means do nothing.
 
+// Setup variables
+bool setup_state = false;   //indicate the state of finding all joint ranges
+bool front_right_knee_rdy = false;   //indicate if the joint range of front right knee is found
+bool front_right_hip_rdy = false;   //indicate if the joint range of front right hip is found
+bool front_right_ab_rdy = false;   //indicate if the joint range of front right ab is found
+bool front_left_knee_rdy = false;   //indicate if the joint range of front left knee is found
+bool front_left_hip_rdy = false;   //indicate if the joint range of front left hip is found
+bool front_left_ab_rdy = false;   //indicate if the joint range of front left ab is found
+bool back_right_knee_rdy = false;   //indicate if the joint range of back right knee is found
+bool back_right_hip_rdy = false;   //indicate if the joint range of back right hip is found
+bool back_right_ab_rdy = false;   //indicate if the joint range of back right ab is found
+bool back_left_knee_rdy = false;   //indicate if the joint range of back left knee is found
+bool back_left_hip_rdy = false;   //indicate if the joint range of back left hip is found
+bool back_left_ab_rdy = false;   //indicate if the joint range of back left ab is found
+
+
+
+String disable_axis0 = "w axis0.requested_state 1";
+String disable_axis1 = "w axis1.requested_state 1";
+
 // Debug Variables
-#ifdef DEBUG_SERIAL
-#endif
+
 
 void setup()
 {
@@ -47,111 +53,90 @@ void setup()
   Serial.begin(1000000);
   while (!Serial)
     ; // wait for Arduino Serial Monitor to open
-  Serial.println("Ready!");
+  Serial.println("Computer Serial connected");
 
   // Serial to odrives @ 921600 baud rate
-  while (!back_KNEE.ini())
+  if(back_KNEE.ini())
   {
-#ifdef DEBUG_SERIAL
-    back_KNEE.readAxisError(RIGHT);
-    back_KNEE.readAxisError(LEFT);
-    if (back_KNEE.axis0_error_ > 0)
-    {
-      Serial.print("back_KNEE: Axis-0 motor error code:");
-      Serial.println(back_KNEE.axis0_error_);
-    }
-    else if (back_KNEE.axis1_error_ > 0)
-    {
-      Serial.print("back_KNEE: Axis-1 motor error code:");
-      Serial.println(back_KNEE.axis1_error_);
-    }
-#endif
+    #ifdef DEBUG_SERIAL
+      Serial.println("back KNEE serial communication activated");
+    #endif
   }
-  while (!back_HIP.ini())
+  else
   {
-#ifdef DEBUG_SERIAL
-    back_HIP.readAxisError(RIGHT);
-    back_HIP.readAxisError(LEFT);
-    if (back_HIP.axis0_error_ > 0)
-    {
-      Serial.print("back_HIP: Axis-0 motor error code:");
-      Serial.println(back_HIP.axis0_error_);
-    }
-    else if (back_HIP.axis1_error_ > 0)
-    {
-      Serial.print("back_HIP: Axis-1 motor error code:");
-      Serial.println(back_HIP.axis1_error_);
-    }
-#endif
+    #ifdef DEBUG_SERIAL
+      Serial.println("back KNEE serial communication failed");
+    #endif
   }
-  while (!back_AB.ini())
+  
+  if(back_HIP.ini())
   {
-#ifdef DEBUG_SERIAL
-    back_AB.readAxisError(RIGHT);
-    back_AB.readAxisError(LEFT);
-    if (back_AB.axis0_error_ > 0)
-    {
-      Serial.print("back_AB: Axis-0 motor error code:");
-      Serial.println(back_AB.axis0_error_);
-    }
-    else if (back_AB.axis1_error_ > 0)
-    {
-      Serial.print("back_AB: Axis-1 motor error code:");
-      Serial.println(back_AB.axis1_error_);
-    }
-#endif
+    #ifdef DEBUG_SERIAL
+      Serial.println("back HIP serial communication activated");
+    #endif
   }
-  while (!front_KNEE.ini())
+  else
   {
-#ifdef DEBUG_SERIAL
-    front_KNEE.readAxisError(RIGHT);
-    front_KNEE.readAxisError(LEFT);
-    if (front_KNEE.axis0_error_ > 0)
-    {
-      Serial.print("front_KNEE: Axis-0 motor error code:");
-      Serial.println(front_KNEE.axis0_error_);
-    }
-    else if (front_KNEE.axis1_error_ > 0)
-    {
-      Serial.print("front_KNEE: Axis-1 motor error code:");
-      Serial.println(front_KNEE.axis1_error_);
-    }
-#endif
+    #ifdef DEBUG_SERIAL
+      Serial.println("back HIP serial communication failed");
+    #endif
   }
-  while (!front_HIP.ini())
+
+  if(back_AB.ini())
   {
-#ifdef DEBUG_SERIAL
-    front_HIP.readAxisError(RIGHT);
-    front_HIP.readAxisError(LEFT);
-    if (front_HIP.axis0_error_ > 0)
-    {
-      Serial.print("front_HIP: Axis-0 motor error code:");
-      Serial.println(front_HIP.axis0_error_);
-    }
-    else if (front_HIP.axis1_error_ > 0)
-    {
-      Serial.print("front_HIP: Axis-1 motor error code:");
-      Serial.println(front_HIP.axis1_error_);
-    }
-#endif
+    #ifdef DEBUG_SERIAL
+      Serial.println("back AB serial communication activated");
+    #endif
   }
-  while (!front_AB.ini())
+  else
   {
-#ifdef DEBUG_SERIAL
-    front_AB.readAxisError(RIGHT);
-    front_AB.readAxisError(LEFT);
-    if (front_AB.axis0_error_ > 0)
-    {
-      Serial.print("front_AB: Axis-0 motor error code:");
-      Serial.println(front_AB.axis0_error_);
-    }
-    else if (front_AB.axis1_error_ > 0)
-    {
-      Serial.print("front_AB: Axis-1 motor error code:");
-      Serial.println(front_AB.axis1_error_);
-    }
-#endif
+    #ifdef DEBUG_SERIAL
+      Serial.println("back AB serial communication failed");
+    #endif
   }
+    if(front_KNEE.ini())
+  {
+    #ifdef DEBUG_SERIAL
+      Serial.println("front KNEE serial communication activated");
+    #endif
+  }
+  else
+  {
+    #ifdef DEBUG_SERIAL
+      Serial.println("front KNEE serial communication failed");
+    #endif
+  }
+  
+  if(front_HIP.ini())
+  {
+    #ifdef DEBUG_SERIAL
+      Serial.println("front HIP serial communication activated");
+    #endif
+  }
+  else
+  {
+    #ifdef DEBUG_SERIAL
+      Serial.println("front HIP serial communication failed");
+    #endif
+  }
+
+  if(front_AB.ini())
+  {
+    #ifdef DEBUG_SERIAL
+      Serial.println("front AB serial communication activated");
+    #endif
+  }
+  else
+  {
+    #ifdef DEBUG_SERIAL
+      Serial.println("front AB serial communication failed");
+    #endif
+  }
+  // while (setup_state == false)
+  // {
+
+  // }
+  back_KNEE.find_joint_neutral_position('r', RIGHT);
 }
 
 void loop()
@@ -160,8 +145,59 @@ void loop()
   if (Serial.available() > 0)
   {
     serial_input = Serial.readString();
-    if (serial_input == "ba")
-    {}
+    Serial.println(serial_input);
+    if (serial_input == "ee")
+    {
+      float loop_counter = 0;
+      int while_counter = 0;
+      while(loop_counter < 20000)
+      {
+        if (Serial.available()>0)
+        {
+          serial_input = Serial.readString();
+          if (serial_input == "dd")
+          {
+            Serial.println("disabeling both axes");
+            back_AB.EnterCommand(disable_axis0);
+            back_AB.EnterCommand(disable_axis1);
+            break;
+          }
+        }
+        back_AB.SetPosition('R',loop_counter);
+        Serial.println(loop_counter);
+        delay(50);
+        loop_counter = loop_counter + 100;
+      }
+      
+    }
+    else if (serial_input == "dd")
+    {
+      Serial.println("disabeling both axes");
+      back_AB.EnterCommand(disable_axis0);
+      back_AB.EnterCommand(disable_axis1);
+    }
+    else if (serial_input == "ba")
+    {
+      Serial.println("Back Ab:");
+      while (Serial.available() == 0);
+      {
+        serial_input = Serial.readString();
+        if (serial_input != 'i')
+        {
+          Serial.println(serial_input);
+          back_AB.EnterCommand(serial_input);
+          Serial.println(back_AB.readString());
+        }
+        else
+        {
+          Serial.println("Back AB ODrv info:");
+          back_AB.EnterCommand(serial_input);
+          Serial.println(back_AB.readString());
+          Serial.println(back_AB.readString());
+          Serial.println(back_AB.readString());
+        }
+      }
+    }
     else if (serial_input == "bh")
     {}
     else if (serial_input == "bk")

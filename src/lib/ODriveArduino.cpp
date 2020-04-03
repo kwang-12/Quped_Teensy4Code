@@ -1,24 +1,14 @@
-#include <Arduino.h>
 #include "ODriveArduino.h"
 
-// Print with stream operator
-template <class T>
-inline Print &operator<<(Print &obj, T arg)
-{
-    obj.print(arg);
-    return obj;
-}
-template <>
-inline Print &operator<<(Print &obj, float arg)
-{
-    obj.print(arg, 4);
-    return obj;
-}
+#ifdef DEBUG_SERIAL
+int a = 1;
+#endif
 
 // Constructor
-ODriveArduino::ODriveArduino(Stream &serial, int serial_num, char axis0_tag, char axis1_tag, int serial_baud_rate) :serial_(serial)
+ODriveArduino::ODriveArduino(Stream &serial, String odrv_name, int serial_num, char axis0_tag, char axis1_tag, int serial_baud_rate) :serial_(serial)
 {
     serial_num_ = serial_num;
+    odrv_name_ = odrv_name;
     axis0_tag_ = axis0_tag;
     axis1_tag_ = axis1_tag;
     serial_baud_rate_ = serial_baud_rate;
@@ -33,7 +23,33 @@ bool ODriveArduino::ini()
     {
         return true;    //ready to go
     }
-    else return false;
+    else 
+    {
+        #ifdef DEBUG_SERIAL
+        if (axis0_error_ > 0 && axis1_error_ > 0)
+        {
+            Serial.print(odrv_name_);
+            Serial.print(": Axis-0 motor error code: ");
+            Serial.println(axis0_error_);
+            Serial.print(odrv_name_);
+            Serial.print(": Axis-1 motor error code: ");
+            Serial.println(axis1_error_);
+        }
+        else if (axis0_error_ > 0)
+        {
+            Serial.print(odrv_name_);
+            Serial.print(": Axis-0 motor error code: ");
+            Serial.println(axis0_error_);
+        }
+        else if (axis1_error_ > 0)
+        {
+            Serial.print(odrv_name_);
+            Serial.print(": Axis-1 motor error code: ");
+            Serial.println(axis1_error_);
+        }
+        #endif
+        return false;
+    }
 }
 
 void ODriveArduino::begin()
@@ -167,6 +183,250 @@ float ODriveArduino::readFloat()
 int32_t ODriveArduino::readInt()
 {
     return readString().toInt();
+}
+
+void ODriveArduino::find_joint_neutral_position(char mode, char axis_tag)
+{
+    if (axis_tag == axis0_tag_)
+    {
+        joint_numbers.a0_zero_pos = calibrate_joint(mode, axis_tag);
+    }
+    else if (axis_tag == axis1_tag_)
+    {
+        joint_numbers.a1_zero_pos = calibrate_joint(mode, axis_tag);
+    }
+}
+
+// find the neutral position of the joint (two modes)
+long int ODriveArduino::calibrate_joint(char mode, char axis_tag)
+{
+  if (mode == 'r')        //find the neutral positoin by finding the max and min
+  {
+    long int pos_1;
+    long int pos_2;
+    long int pos_neutral;
+    bool pos_confirm = false;
+    bool pos_1_confirm = false;
+    bool pos_2_confirm = false;
+    while (pos_confirm == false)
+    {
+      while (pos_1_confirm == false)
+      {
+        Serial.println("Manually move to position 1...");
+        Serial.println("Enter y when boundary position 1 is reached.");
+        if (pos_1_confirm == false)
+        {
+          while(Serial.available()==0);//do nothing. wait for input
+          String input_level_1 = Serial.readString();
+          if (input_level_1 == 'y')
+          {
+            Serial.print("Current motor position is: ");
+            if (axis_tag == axis0_tag_)
+            {
+                readEncoderData(axis0_tag_);
+                pos_1 = encoder_readings.a0_pos_reading;
+                Serial.println(pos_1);
+                Serial.println("Is this the boundary position 1?");
+                Serial.println("Enter y to confirm");
+                Serial.println("Enter anything else to read the position again");
+                bool pos_input_confirm = false;
+                while (pos_input_confirm == false)
+                {
+                    while(Serial.available()==0);   //do nothing. wait for input
+                    String input_level_2 = Serial.readString();
+                    if (input_level_2 == 'y')
+                    {
+                        pos_input_confirm = true;
+                    }
+                    else
+                    {
+                        Serial.println("Current motor position is: ");
+                        readEncoderData(axis0_tag_);
+                        pos_1 = encoder_readings.a0_pos_reading;
+                        Serial.println(pos_1);
+                        Serial.println("Is this the boundary position 1?");
+                        Serial.println("Enter y to confirm");
+                        Serial.println("Enter anything else to read the position again");
+                    }
+                }
+                pos_1_confirm = true;
+            }
+            else if (axis_tag == axis1_tag_)
+            {
+                readEncoderData(axis1_tag_);
+                pos_1 = encoder_readings.a1_pos_reading;
+                Serial.println(pos_1);
+                Serial.println("Is this the boundary position 1?");
+                Serial.println("Enter y to confirm");
+                Serial.println("Enter anything else to read the position again");
+                bool pos_input_confirm = false;
+                while (pos_input_confirm == false)
+                {
+                    while(Serial.available()==0);   //do nothing. wait for input
+                    String input_level_2 = Serial.readString();
+                    if (input_level_2 == 'y')
+                    {
+                        pos_input_confirm = true;
+                    }
+                    else
+                    {
+                        Serial.println("Current motor position is: ");
+                        readEncoderData(axis1_tag_);
+                        pos_1 = encoder_readings.a1_pos_reading;
+                        Serial.println(pos_1);
+                        Serial.println("Is this the boundary position 1?");
+                        Serial.println("Enter y to confirm");
+                        Serial.println("Enter anything else to read the position again");
+                    }
+                }
+                pos_1_confirm = true;
+            }
+          }
+        }
+      }
+      while (pos_2_confirm == false)
+      {
+        Serial.println("Manually move to position 2...");
+        Serial.println("Enter y when boundary position 2 is reached.");
+        if (pos_2_confirm == false)
+        {
+          while (Serial.available()==0);//do nothing. wait for input
+          String input_level_1 = Serial.readString();
+          if (input_level_1 == 'y')
+          {
+            Serial.print("Current motor position is: ");
+            if (axis_tag == axis0_tag_)
+            {
+                readEncoderData(axis0_tag_);
+                pos_2 = encoder_readings.a0_pos_reading;
+                Serial.println(pos_2);
+                Serial.println("Is this the boundary position 2?");
+                Serial.println("Enter y to confirm");
+                Serial.println("Enter anything else to read the position again");
+                bool pos_input_confirm = false;
+                while (pos_input_confirm == false)
+                {
+                    while(Serial.available()==0);   //do nothing. wait for input
+                    String input_level_2 = Serial.readString();
+                    if (input_level_2 == 'y')
+                    {
+                        pos_input_confirm = true;
+                    }
+                    else
+                    {
+                        Serial.println("Current motor position is: ");
+                        readEncoderData(axis0_tag_);
+                        pos_2 = encoder_readings.a0_pos_reading;
+                        Serial.println(pos_2);
+                        Serial.println("Is this the boundary position 2?");
+                        Serial.println("Enter y to confirm");
+                        Serial.println("Enter anything else to read the position again");
+                    }
+                }
+                pos_2_confirm = true;
+            }
+            else if (axis_tag == axis1_tag_)
+            {
+                readEncoderData(axis1_tag_);
+                pos_2 = encoder_readings.a1_pos_reading;
+                Serial.println(pos_2);
+                Serial.println("Is this the boundary position 2?");
+                Serial.println("Enter y to confirm");
+                Serial.println("Enter anything else to read the position again");
+                bool pos_input_confirm = false;
+                while (pos_input_confirm == false)
+                {
+                    while(Serial.available()==0);   //do nothing. wait for input
+                    String input_level_2 = Serial.readString();
+                    if (input_level_2 == 'y')
+                    {
+                        pos_input_confirm = true;
+                    }
+                    else
+                    {
+                        Serial.println("Current motor position is: ");
+                        readEncoderData(axis1_tag_);
+                        pos_2 = encoder_readings.a1_pos_reading;
+                        Serial.println(pos_2);
+                        Serial.println("Is this the boundary position 2?");
+                        Serial.println("Enter y to confirm");
+                        Serial.println("Enter anything else to read the position again");
+                    }
+                }
+                pos_2_confirm = true;
+            }
+          }
+        }
+      }
+      if (pos_1_confirm == true && pos_2_confirm == true)
+      {
+        Serial.println("Both positions confirmed!");
+        Serial.println("Neutral position(zero deg) will be the average of both values");
+        Serial.print("Boundary position 1: ");
+        Serial.println(pos_1);
+        Serial.print("Boundary position 2: ");
+        Serial.println(pos_2);
+        Serial.println("Enter y to confirm both positions");
+        Serial.println("Enter 1 or 2 to modify position 1 or position 2");
+        Serial.println("Enter n to redo the process");
+        while (Serial.available()==0);//do nothing. wait for input
+        String input = Serial.readString();
+        while (input != 'y' && input != '1' && input != '2' && input != 'n')
+        {
+            Serial.println("Both positions confirmed!");
+            Serial.println("Neutral position(zero deg) will be the average of both values");
+            Serial.print("Boundary position 1: ");
+            Serial.println(pos_1);
+            Serial.print("Boundary position 2: ");
+            Serial.println(pos_2);
+            Serial.println("Enter y to confirm both positions");
+            Serial.println("Enter 1 or 2 to modify position 1 or position 2");
+            Serial.println("Enter n to redo the process");
+            while (Serial.available()==0);//do nothing. wait for input
+            input = Serial.readString();
+        }
+        if (input == 'y')
+        {
+            pos_neutral = (pos_1+pos_2)/2;
+            Serial.println("pos-1    pos-neutral    pos-2");
+            Serial.print(pos_1);
+            Serial.print('\t');
+            Serial.print(pos_neutral);
+            Serial.print('\t');
+            Serial.println(pos_2);
+            pos_confirm = true;
+        }
+        else if (input == '1')
+        {
+            Serial.println("Modifying boundary position 1...");
+            pos_1_confirm = false;
+        }
+        else if (input == '2')
+        {
+            Serial.println("Modifying boundary positoin 2...");
+            pos_2_confirm = false;
+        }
+        else if (input == 'n')
+        {
+            Serial.println("Redo the process...");
+            pos_1_confirm = false;
+            pos_2_confirm = false;
+        }
+      }
+    }
+    return pos_neutral;
+  }
+  else if (mode == 'c')    //find the neutral position by direct confirmation
+  {
+      long int a = 1;
+      return a;
+  }
+  else if (mode == 'u')    //find the neutral position by user input
+  {
+      long int a = 1;
+      return a;
+  }
+  return 1;
 }
 
 bool ODriveArduino::run_state(int axis, int requested_state, bool wait)

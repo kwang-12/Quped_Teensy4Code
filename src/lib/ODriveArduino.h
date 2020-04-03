@@ -1,8 +1,10 @@
 #include <Arduino.h>
+#include "globals.h"
 
 class ODriveArduino {
 public:
     Stream& serial_;
+    String odrv_name_;
     char axis0_tag_;
     char axis1_tag_;
     int serial_num_;
@@ -22,16 +24,20 @@ public:
         AXIS_STATE_CLOSED_LOOP_CONTROL = 8  //<! run closed loop control
     };
     struct encoder_readings{
-        long int a0_pos_reading = 0.0;
-        long int a0_velo_reading = 0.0;
-        long int a0_current_reading = 0.0;
-        long int a1_pos_reading = 0.0;
-        long int a1_velo_reading = 0.0;
-        long int a1_current_reading = 0.0;
+        long int a0_pos_reading = 0;
+        long int a0_velo_reading = 0;
+        long int a0_current_reading = 0;
+        long int a1_pos_reading = 0;
+        long int a1_velo_reading = 0;
+        long int a1_current_reading = 0;
     } encoder_readings;
+    struct joint_numbers{
+        long int a0_zero_pos = 0;
+        long int a1_zero_pos = 0;
+    } joint_numbers;
 
     // ODriveArduino(Stream& serial);
-    ODriveArduino(Stream& serial, int serial_num, char axis0_tag, char axis1_tag, int serial_baud_rate);  //Constructor
+    ODriveArduino(Stream& serial, String odrv_name, int serial_num, char axis0_tag, char axis1_tag, int serial_baud_rate);  //Constructor
 
     // Basic methods
     bool ini();
@@ -52,6 +58,9 @@ public:
     float readFloat();
     int32_t readInt();
 
+    // Calibratation
+    void find_joint_neutral_position(char mode, char axis_tag);
+    long int calibrate_joint(char mode, char axis_tag);
 
     // State helper
     bool run_state(int axis, int requested_state, bool wait);
