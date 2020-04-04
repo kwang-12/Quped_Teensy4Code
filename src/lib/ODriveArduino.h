@@ -1,16 +1,21 @@
 #include <Arduino.h>
 #include "globals.h"
+#include <Metro.h>
 
 class ODriveArduino {
 public:
     Stream& serial_;
+
     String odrv_name_;
     char axis0_tag_;
     char axis1_tag_;
     int serial_num_;
     int serial_baud_rate_;
+
     int axis0_error_;
     int axis1_error_;
+    Metro axis0_timer_ = Metro(10);
+    Metro axis1_timer_ = Metro(10);
 
     enum AxisState_t {
         AXIS_STATE_UNDEFINED = 0,           //<! will fall through to idle
@@ -43,6 +48,13 @@ public:
     bool ini();
     void begin();
     void EnterCommand(String command);
+
+    // Timer
+    void iniTimer(char axis_tag, unsigned long time_interval);
+    void modifyTimer(char axis_tag, unsigned long time_interval);
+    
+    // Move to pos
+    void move_to_pos(char axis_tag, float deg);
     
     // Write commands
     void SetPosition(char axis_tag, float position);

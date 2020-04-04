@@ -1,8 +1,5 @@
 #include "ODriveArduino.h"
-
-#ifdef DEBUG_SERIAL
-int a = 1;
-#endif
+#include <Metro.h>
 
 // Constructor
 ODriveArduino::ODriveArduino(Stream &serial, String odrv_name, int serial_num, char axis0_tag, char axis1_tag, int serial_baud_rate) :serial_(serial)
@@ -83,6 +80,34 @@ void ODriveArduino::begin()
 void ODriveArduino::EnterCommand(String command)
 {
     serial_ << command << '\n';
+}
+
+void ODriveArduino::iniTimer(char axis_tag, unsigned long time_interval)
+{
+    if (axis_tag == axis0_tag_)
+    {
+        axis0_timer_ = Metro(time_interval);
+        axis0_timer_.reset();
+    }
+    else if (axis_tag == axis1_tag_)
+    {
+        axis1_timer_ = Metro(time_interval);
+        axis1_timer_.reset();
+    }
+}
+
+void ODriveArduino::modifyTimer(char axis_tag, unsigned long time_interval)
+{
+    if (axis_tag == axis0_tag_)
+    {
+        axis0_timer_.interval(time_interval);
+        axis0_timer_.reset();
+    }
+    else if (axis_tag == axis1_tag_)
+    {
+        axis1_timer_.interval(time_interval);
+        axis1_timer_.reset();
+    }
 }
 
 void ODriveArduino::SetPosition(char axis_tag, float position)
@@ -388,11 +413,12 @@ long int ODriveArduino::calibrate_joint(char mode, char axis_tag)
         if (input == 'y')
         {
             pos_neutral = (pos_1+pos_2)/2;
+            Serial.println(odrv_name_);
             Serial.println("pos-1    pos-neutral    pos-2");
             Serial.print(pos_1);
-            Serial.print('\t');
+            Serial.print("\t\t");
             Serial.print(pos_neutral);
-            Serial.print('\t');
+            Serial.print("\t\t");
             Serial.println(pos_2);
             pos_confirm = true;
         }

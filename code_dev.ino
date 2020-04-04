@@ -46,7 +46,6 @@ String disable_axis1 = "w axis1.requested_state 1";
 
 // Debug Variables
 
-
 void setup()
 {
   // Serial to PC @ 921600 baud rate
@@ -146,7 +145,7 @@ void loop()
   {
     serial_input = Serial.readString();
     Serial.println(serial_input);
-    if (serial_input == "ee")
+    else if (serial_input == "ee")
     {
       float loop_counter = 0;
       int while_counter = 0;
