@@ -113,8 +113,8 @@ public:
     bool checkTimer(char axis_tag);
     
     // axis states
-    bool armAxis(char axis_tag);
-    bool disarmAxis(char axis_tag);
+    bool armAxis(char axis_tag='a');
+    bool disarmAxis(char axis_tag='a');
 
     // Write commands
     void SetPosition(char axis_tag, float deg);

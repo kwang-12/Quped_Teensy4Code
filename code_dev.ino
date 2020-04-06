@@ -27,6 +27,9 @@ char state = 'z';    // store the state of loop program. By default, 'z' means d
 float input_pos_state_c;
 float input_pos_state_d;
 float input_pos_state_e;
+float target_k;
+float target_h;
+float target_a;
 
 
 // Setup variables
@@ -140,11 +143,17 @@ void setup()
   // {
 
   // }
+  // front_KNEE.find_joint_neutral_position('r', RIGHT);
+  // front_HIP.find_joint_neutral_position('c', RIGHT);
+  // front_AB.find_joint_neutral_position('r', RIGHT);
+  // front_KNEE.find_joint_neutral_position('r', LEFT);
+  // front_HIP.find_joint_neutral_position('c', LEFT);
+  // front_AB.find_joint_neutral_position('r', LEFT);
   // back_KNEE.find_joint_neutral_position('r', RIGHT);
   // back_HIP.find_joint_neutral_position('c', RIGHT);
-  // back_AB.find_joint_neutral_position('r', RIGHT);
-  back_KNEE.find_joint_neutral_position('r', LEFT);
-  back_HIP.find_joint_neutral_position('c', LEFT);
+  back_AB.find_joint_neutral_position('r', RIGHT);
+  // back_KNEE.find_joint_neutral_position('r', LEFT);
+  // back_HIP.find_joint_neutral_position('c', LEFT);
   back_AB.find_joint_neutral_position('r', LEFT);
 }
 
@@ -165,9 +174,13 @@ void loop()
       Serial.println("start sweeping motion...");
       state = 'a';
     }
-    else if (serial_input == "deg")
+    else if (serial_input == "degb")
     {
       state = 'b';
+    }
+    else if (serial_input == "degf")
+    {
+      state = 'B';
     }
     else if (serial_input == "gk")
     {
@@ -181,14 +194,26 @@ void loop()
     {
       state = 'e';
     }
+    else if (serial_input == "knee")
+    {
+      state = '!';
+    }
+    else if (serial_input == "hip")
+    {
+      state = '@';
+    }
+    else if (serial_input == "ab")
+    {
+      state = '#';
+    }
     else if (serial_input == "disarm")
     {
-      back_KNEE.disarmAxis(RIGHT);
-      back_HIP.disarmAxis(RIGHT);
-      back_AB.disarmAxis(RIGHT);
-      back_KNEE.disarmAxis(LEFT);
-      back_HIP.disarmAxis(LEFT);
-      back_AB.disarmAxis(LEFT);
+      back_KNEE.disarmAxis();
+      back_HIP.disarmAxis();
+      back_AB.disarmAxis();
+      // front_KNEE.disarmAxis();
+      // front_HIP.disarmAxis();
+      // front_AB.disarmAxis();
     }
     else if (serial_input == "bab")
     {
@@ -280,20 +305,76 @@ void loop()
     else if (state == 'b')
     {
       Serial.println("------");
-      Serial.print("kR");
+      Serial.print("bkR");
       Serial.print(back_KNEE.transPosition_num2deg(RIGHT,back_KNEE.getAxisPos(RIGHT,true)));
       Serial.print('\t');
-      Serial.print("hR");
+      Serial.print("bhR");
       Serial.print(back_HIP.transPosition_num2deg(RIGHT,back_HIP.getAxisPos(RIGHT,true)));
       Serial.print('\t');
-      Serial.print("aR");
-      Serial.println(back_AB.transPosition_num2deg(RIGHT,back_AB.getAxisPos(RIGHT,true)));
+      Serial.print("baR");
+      Serial.print(back_AB.transPosition_num2deg(RIGHT,back_AB.getAxisPos(RIGHT,true)));
+      Serial.print('\t');
+      Serial.print("bkL");
+      Serial.print(back_KNEE.transPosition_num2deg(LEFT,back_KNEE.getAxisPos(LEFT,true)));
+      Serial.print('\t');
+      Serial.print("bhL");
+      Serial.print(back_HIP.transPosition_num2deg(LEFT,back_HIP.getAxisPos(LEFT,true)));
+      Serial.print('\t');
+      Serial.print("baL");
+      Serial.println(back_AB.transPosition_num2deg(LEFT,back_AB.getAxisPos(LEFT,true)));
+    }
+    else if (state == 'B')
+    {
+      Serial.print("fkR");
+      Serial.print(front_KNEE.transPosition_num2deg(RIGHT,front_KNEE.getAxisPos(RIGHT,true)));
+      Serial.print('\t');
+      Serial.print("fhR");
+      Serial.print(front_HIP.transPosition_num2deg(RIGHT,front_HIP.getAxisPos(RIGHT,true)));
+      Serial.print('\t');
+      Serial.print("faR");
+      Serial.print(front_AB.transPosition_num2deg(RIGHT,front_AB.getAxisPos(RIGHT,true)));
+      Serial.print('\t');
+      Serial.print("fkL");
+      Serial.print(front_KNEE.transPosition_num2deg(LEFT,front_KNEE.getAxisPos(LEFT,true)));
+      Serial.print('\t');
+      Serial.print("fhL");
+      Serial.print(front_HIP.transPosition_num2deg(LEFT,front_HIP.getAxisPos(LEFT,true)));
+      Serial.print('\t');
+      Serial.print("faL");
+      Serial.println(front_AB.transPosition_num2deg(LEFT,front_AB.getAxisPos(LEFT,true)));
       // state = 'z';
     }
     else if (state == 'c')
     {
+      // Serial.print("Current position:");
+      // Serial.println(back_KNEE.transPosition_num2deg(RIGHT, back_KNEE.getAxisPos(RIGHT,true)));
+      // Serial.println("Enter target position.");
+      // while(Serial.available()==0);
+      // input_pos_state_c = Serial.readString().toInt();
+      // Serial.print("Target position: ");
+      // Serial.println(input_pos_state_c);
+      // Serial.println("Enter y to confirm. Enter anything else to redo.");
+      // while(Serial.available()==0);
+      // String input_state = Serial.readString();
+      // while(input_state != 'y')
+      // {
+      //   Serial.print("Current position:");
+      //   Serial.println(back_KNEE.transPosition_num2deg(RIGHT, back_KNEE.getAxisPos(RIGHT,true)));
+      //   Serial.println("Enter target position.");
+      //   while(Serial.available()==0);
+      //   input_pos_state_c = Serial.readString().toInt();
+      //   Serial.print("Target position: ");
+      //   Serial.println(input_pos_state_c);
+      //   Serial.println("Enter y to confirm. Enter anything else to redo.");
+      //   while(Serial.available()==0);
+      //   input_state = Serial.readString();
+      // }
+      // state = '1';
+      // back_KNEE.armAxis(RIGHT);
+
+      
       Serial.print("Current position:");
-      Serial.println(back_KNEE.transPosition_num2deg(RIGHT, back_KNEE.getAxisPos(RIGHT,true)));
+      Serial.println(back_KNEE.transPosition_num2deg(LEFT, back_KNEE.getAxisPos(LEFT,true)));
       Serial.println("Enter target position.");
       while(Serial.available()==0);
       input_pos_state_c = Serial.readString().toInt();
@@ -305,7 +386,7 @@ void loop()
       while(input_state != 'y')
       {
         Serial.print("Current position:");
-        Serial.println(back_KNEE.transPosition_num2deg(RIGHT, back_KNEE.getAxisPos(RIGHT,true)));
+        Serial.println(back_KNEE.transPosition_num2deg(LEFT, back_KNEE.getAxisPos(LEFT,true)));
         Serial.println("Enter target position.");
         while(Serial.available()==0);
         input_pos_state_c = Serial.readString().toInt();
@@ -316,24 +397,50 @@ void loop()
         input_state = Serial.readString();
       }
       state = '1';
-      back_KNEE.armAxis(RIGHT);
+      back_KNEE.armAxis(LEFT);
     }
     else if (state == '1')
     {
-      if(!back_KNEE.moveTo_constVelo(RIGHT, input_pos_state_c, 5.0))
+      if(!back_KNEE.moveTo_constVelo(LEFT, input_pos_state_c, 5.0))
       {
 
       }
       else
       {
         state = 'z';
-        // back_KNEE.disarmAxis(RIGHT);
       }
     }
     else if (state == 'd')
     {
+      // Serial.print("Current position:");
+      // Serial.println(back_HIP.transPosition_num2deg(RIGHT, back_HIP.getAxisPos(RIGHT,true)));
+      // Serial.println("Enter target position.");
+      // while(Serial.available()==0);
+      // input_pos_state_d = Serial.readString().toInt();
+      // Serial.print("Target position: ");
+      // Serial.println(input_pos_state_d);
+      // Serial.println("Enter y to confirm. Enter anything else to redo.");
+      // while(Serial.available()==0);
+      // String input_state = Serial.readString();
+      // while(input_state != 'y')
+      // {
+      //   Serial.print("Current position:");
+      //   Serial.println(back_HIP.transPosition_num2deg(RIGHT, back_HIP.getAxisPos(RIGHT,true)));
+      //   Serial.println("Enter target position.");
+      //   while(Serial.available()==0);
+      //   input_pos_state_d = Serial.readString().toInt();
+      //   Serial.print("Target position: ");
+      //   Serial.println(input_pos_state_d);
+      //   Serial.println("Enter y to confirm. Enter anything else to redo.");
+      //   while(Serial.available()==0);
+      //   input_state = Serial.readString();
+      // }
+      // state = '2';
+      // back_HIP.armAxis(RIGHT);
+
+      
       Serial.print("Current position:");
-      Serial.println(back_HIP.transPosition_num2deg(RIGHT, back_HIP.getAxisPos(RIGHT,true)));
+      Serial.println(back_HIP.transPosition_num2deg(LEFT, back_HIP.getAxisPos(LEFT,true)));
       Serial.println("Enter target position.");
       while(Serial.available()==0);
       input_pos_state_d = Serial.readString().toInt();
@@ -345,7 +452,7 @@ void loop()
       while(input_state != 'y')
       {
         Serial.print("Current position:");
-        Serial.println(back_HIP.transPosition_num2deg(RIGHT, back_HIP.getAxisPos(RIGHT,true)));
+        Serial.println(back_HIP.transPosition_num2deg(LEFT, back_HIP.getAxisPos(LEFT,true)));
         Serial.println("Enter target position.");
         while(Serial.available()==0);
         input_pos_state_d = Serial.readString().toInt();
@@ -356,24 +463,50 @@ void loop()
         input_state = Serial.readString();
       }
       state = '2';
-      back_HIP.armAxis(RIGHT);
+      back_HIP.armAxis(LEFT);
     }
     else if (state == '2')
     {
-      if(!back_HIP.moveTo_constVelo(RIGHT, input_pos_state_d, 5.0))
+      if(!back_HIP.moveTo_constVelo(LEFT, input_pos_state_d, 5.0))
       {
 
       }
       else
       {
         state = 'z';
-        // back_KNEE.disarmAxis(RIGHT);
       }
     }
     else if (state == 'e')
     {
+      // Serial.print("Current position:");
+      // Serial.println(back_AB.transPosition_num2deg(RIGHT, back_AB.getAxisPos(RIGHT,true)));
+      // Serial.println("Enter target position.");
+      // while(Serial.available()==0);
+      // input_pos_state_e = Serial.readString().toInt();
+      // Serial.print("Target position: ");
+      // Serial.println(input_pos_state_d);
+      // Serial.println("Enter y to confirm. Enter anything else to redo.");
+      // while(Serial.available()==0);
+      // String input_state = Serial.readString();
+      // while(input_state != 'y')
+      // {
+      //   Serial.print("Current position:");
+      //   Serial.println(back_AB.transPosition_num2deg(RIGHT, back_AB.getAxisPos(RIGHT,true)));
+      //   Serial.println("Enter target position.");
+      //   while(Serial.available()==0);
+      //   input_pos_state_e = Serial.readString().toInt();
+      //   Serial.print("Target position: ");
+      //   Serial.println(input_pos_state_e);
+      //   Serial.println("Enter y to confirm. Enter anything else to redo.");
+      //   while(Serial.available()==0);
+      //   input_state = Serial.readString();
+      // }
+      // state = '3';
+      // back_AB.armAxis(RIGHT);
+
+      
       Serial.print("Current position:");
-      Serial.println(back_AB.transPosition_num2deg(RIGHT, back_AB.getAxisPos(RIGHT,true)));
+      Serial.println(back_AB.transPosition_num2deg(LEFT, back_AB.getAxisPos(LEFT,true)));
       Serial.println("Enter target position.");
       while(Serial.available()==0);
       input_pos_state_e = Serial.readString().toInt();
@@ -385,7 +518,7 @@ void loop()
       while(input_state != 'y')
       {
         Serial.print("Current position:");
-        Serial.println(back_AB.transPosition_num2deg(RIGHT, back_AB.getAxisPos(RIGHT,true)));
+        Serial.println(back_AB.transPosition_num2deg(LEFT, back_AB.getAxisPos(LEFT,true)));
         Serial.println("Enter target position.");
         while(Serial.available()==0);
         input_pos_state_e = Serial.readString().toInt();
@@ -396,236 +529,190 @@ void loop()
         input_state = Serial.readString();
       }
       state = '3';
-      back_AB.armAxis(RIGHT);
+      back_AB.armAxis(LEFT);
     }
     else if (state == '3')
     {
-      if(!back_AB.moveTo_constVelo(RIGHT, input_pos_state_e, 5.0))
+      if(!back_AB.moveTo_constVelo(LEFT, input_pos_state_e, 5.0))
       {
 
       }
       else
       {
         state = 'z';
-        // back_KNEE.disarmAxis(RIGHT);
+      }
+    }
+    else if (state == '!')  //all knee
+    {
+      Serial.println("Enter target position.");
+      while(Serial.available()==0);
+      target_k = Serial.readString().toInt();
+      Serial.print("Target pos: ");
+      Serial.println(target_k);
+      Serial.println("Enter y to confirm. Enter anything else to redo.");
+      while(Serial.available()==0);
+      String input_state = Serial.readString();
+      while(input_state != 'y')
+      {
+        Serial.println("Enter target position.");
+        while(Serial.available()==0);
+        target_k = Serial.readString().toInt();
+        Serial.print("Target pos: ");
+        Serial.println(target_k);
+        Serial.println("Enter y to confirm. Enter anything else to redo.");
+        while(Serial.available()==0);
+        input_state = Serial.readString();
+      }
+      state = '^';
+    }
+    else if (state == '^')
+    {
+      if(!adjust_all_joint_by_type(KNEE, target_k, 5.0))
+      {
+
+      }
+      else
+      {
+        state ='z';
+      }
+    }
+    else if (state == '@')  //all hip
+    {
+      Serial.println("Enter target position.");
+      while(Serial.available()==0);
+      target_h = Serial.readString().toInt();
+      Serial.print("Target pos: ");
+      Serial.println(target_h);
+      Serial.println("Enter y to confirm. Enter anything else to redo.");
+      while(Serial.available()==0);
+      String input_state = Serial.readString();
+      while(input_state != 'y')
+      {
+        Serial.println("Enter target position.");
+        while(Serial.available()==0);
+        target_h = Serial.readString().toInt();
+        Serial.print("Target pos: ");
+        Serial.println(target_h);
+        Serial.println("Enter y to confirm. Enter anything else to redo.");
+        while(Serial.available()==0);
+        input_state = Serial.readString();
+      }
+      state = '&';
+    }
+    else if (state == '&')
+    {
+      if(!adjust_all_joint_by_type(HIP, target_h, 5.0))
+      {
+
+      }
+      else
+      {
+        state ='z';
+      }
+    }
+    else if (state == '#')  //all ab
+    {
+      Serial.println("Enter target position.");
+      while(Serial.available()==0);
+      target_a = Serial.readString().toInt();
+      Serial.print("Target pos: ");
+      Serial.println(target_a);
+      Serial.println("Enter y to confirm. Enter anything else to redo.");
+      while(Serial.available()==0);
+      String input_state = Serial.readString();
+      while(input_state != 'y')
+      {
+        Serial.println("Enter target position.");
+        while(Serial.available()==0);
+        target_a = Serial.readString().toInt();
+        Serial.print("Target pos: ");
+        Serial.println(target_a);
+        Serial.println("Enter y to confirm. Enter anything else to redo.");
+        while(Serial.available()==0);
+        input_state = Serial.readString();
+      }
+      state = '*';
+      back_AB.armAxis();
+    }
+    else if (state == '*')
+    {
+      if(!adjust_all_joint_by_type(AB, target_a, 5.0))
+      {
+
+      }
+      else
+      {
+        state ='z';
       }
     }
 #endif
-    // //  Serial.println(state);
-    //   if (Serial.available() > 0)
-    //   {
-    //     serial_input = Serial.readString();
-    //     // one time operations
-    //     if (serial_input == "i1")
-    //     { // read back_KNEE's hw/sw version and serial num
-    //       Serial1 << "i" << '\n';
-    //       Serial << "ODRV-1 INFO:" << '\n';
-    //       Serial << back_KNEE.readString() << '\n';
-    //       Serial << back_KNEE.readString() << '\n';
-    //       Serial << back_KNEE.readString() << '\n';
-    //       state = 'z'; // do nothing
-    //     }
-    //     else if (serial_input == "i2")
-    //     { // read back_HIP's hw/sw version and serial num
-    //       Serial2 << "i" << '\n';
-    //       Serial << "ODRV-2 INFO:" << '\n';
-    //       Serial << back_HIP.readString() << '\n';
-    //       Serial << back_HIP.readString() << '\n';
-    //       Serial << back_HIP.readString() << '\n';
-    //       state = 'z'; // do nothing
-    //     }
-    //     else if (serial_input == "i3")
-    //     { // read back_AB's hw/sw version and serial num
-    //       Serial3 << "i" << '\n';
-    //       Serial << "ODRV-3 INFO:" << '\n';
-    //       Serial << back_AB.readString() << '\n';
-    //       Serial << back_AB.readString() << '\n';
-    //       Serial << back_AB.readString() << '\n';
-    //       state = 'z'; // do nothing
-    //     }
-    //     else if (serial_input == "i4")
-    //     { // read back_AB's hw/sw version and serial num
-    //       Serial4 << "i" << '\n';
-    //       Serial << "ODRV-4 INFO:" << '\n';
-    //       Serial << front_KNEE.readString() << '\n';
-    //       Serial << front_KNEE.readString() << '\n';
-    //       Serial << front_KNEE.readString() << '\n';
-    //       state = 'z'; // do nothing
-    //     }
-    //     else if (serial_input == "i5")
-    //     { // read back_AB's hw/sw version and serial num
-    //       Serial5 << "i" << '\n';
-    //       Serial << "ODRV-5 INFO:" << '\n';
-    //       Serial << front_HIP.readString() << '\n';
-    //       Serial << front_HIP.readString() << '\n';
-    //       Serial << front_HIP.readString() << '\n';
-    //       state = 'z'; // do nothing
-    //     }
-    //     else if (serial_input == "i6")
-    //     { // read back_AB's hw/sw version and serial num
-    //       Serial7 << "i" << '\n';
-    //       Serial << "ODRV-6 INFO:" << '\n';
-    //       Serial << front_AB.readString() << '\n';
-    //       Serial << front_AB.readString() << '\n';
-    //       Serial << front_AB.readString() << '\n';
-    //       state = 'z'; // do nothing
-    //     }
-    //     else if (serial_input == "e1")
-    //     {
-    //       state = 'a'; // switch state to 'a' to start pulling back_KNEE's encoder pos and velo
-    //     }
-    //     else if (serial_input == "e2")
-    //     {
-    //       state = 'b'; // switch state to 'b' to start pulling back_HIP's encoder pos and velo
-    //     }
-    //     else if (serial_input == "e3")
-    //     {
-    //       state = 'c'; // switch state to 'c' to start pulling back_AB's encoder pos and velo
-    //     }
-    //     else if (serial_input == "e4")
-    //     {
-    //       state = 'd'; // switch state to 'd' to start pulling back_KNEE, back_HIP and back_AB's encoder pos and velo
-    //     }
-    //     else if (serial_input == "e5")
-    //     {
-    //       state = 'e'; // switch state to 'd' to start pulling back_KNEE, back_HIP and back_AB's encoder pos and velo
-    //     }
-    //     else if (serial_input == "e6")
-    //     {
-    //       state = 'f'; // switch state to 'd' to start pulling back_KNEE, back_HIP and back_AB's encoder pos and velo
-    //     }
-    //     else if (serial_input == "e7")
-    //     {
-    //       state = 'g'; // switch state to 'd' to start pulling back_KNEE, back_HIP and back_AB's encoder pos and velo
-    //     }
-    //     else
-    //     {
-    //       Serial << "Entered input: '" << serial_input << "'\n";
-    //       Serial1.println(serial_input);
-    //       Serial << back_KNEE.readString() << '\n';
-    //     }
-    //   }
-
-    //   // loop operations (repeat with the base program loop based on states determined by user input)
-    //   if (state == 'a')
-    //   { // pull back_KNEE encoder pos and velo
-    // #ifdef DEBUG_SERIAL
-    //     Serial.println("state a");
-    // #endif
-    // #ifdef NORMAL_OPERATION
-    //     back_KNEE.readEncoderData(2);
-    //     Serial.print("back_KNEE - axis0: ");
-    //     Serial.println(back_KNEE.encoder_readings.a0_pos_reading);
-    //     Serial.print("back_KNEE - axis1: ");
-    //     Serial.println(back_KNEE.encoder_readings.a1_pos_reading);
-    // #endif
-    //   }
-    //   else if (state == 'b')
-    //   { // pull back_KNEE encoder pos and velo
-    // #ifdef DEBUG_SERIAL
-    //     Serial.println("state b");
-    // #endif
-    // #ifdef NORMAL_OPERATION
-    //     back_HIP.readEncoderData(2);
-    //     Serial.print("back_HIP - axis0: ");
-    //     Serial.println(back_HIP.encoder_readings.a0_pos_reading);
-    //     Serial.print("back_HIP - axis1: ");
-    //     Serial.println(back_HIP.encoder_readings.a1_pos_reading);
-    // #endif
-    //   }
-    //   else if (state == 'c')
-    //   { // pull back_KNEE encoder pos and velo
-    // #ifdef DEBUG_SERIAL
-    //     Serial.println("state c");
-    // #endif
-    // #ifdef NORMAL_OPERATION
-    //     back_AB.readEncoderData(2);
-    //     Serial.print("back_AB - axis0: ");
-    //     Serial.println(back_AB.encoder_readings.a0_pos_reading);
-    //     Serial.print("back_AB - axis1: ");
-    //     Serial.println(back_AB.encoder_readings.a1_pos_reading);
-    // #endif
-    //   }
-    //   else if (state == 'd')
-    //   { // pull back_KNEE encoder pos and velo
-    // #ifdef DEBUG_SERIAL
-    //     Serial.println("state d");
-    // #endif
-    // #ifdef NORMAL_OPERATION
-    //     front_KNEE.readEncoderData(2);
-    //     Serial.print("front_KNEE - axis0: ");
-    //     Serial.println(front_KNEE.encoder_readings.a0_pos_reading);
-    //     Serial.print("front_KNEE - axis1: ");
-    //     Serial.println(front_KNEE.encoder_readings.a1_pos_reading);
-    // #endif
-    //   }
-    //   else if (state == 'e')
-    //   { // pull back_KNEE encoder pos and velo
-    // #ifdef DEBUG_SERIAL
-    //     Serial.println("state e");
-    // #endif
-    // #ifdef NORMAL_OPERATION
-    //     front_HIP.readEncoderData(2);
-    //     Serial.print("front_HIP - axis0: ");
-    //     Serial.println(front_HIP.encoder_readings.a0_pos_reading);
-    //     Serial.print("front_HIP - axis1: ");
-    //     Serial.println(front_HIP.encoder_readings.a1_pos_reading);
-    // #endif
-    //   }
-    //   else if (state == 'f')
-    //   { // pull back_KNEE encoder pos and velo
-    // #ifdef DEBUG_SERIAL
-    //     Serial.println("state f");
-    // #endif
-    // #ifdef NORMAL_OPERATION
-    //     front_AB.readEncoderData(2);
-    //     Serial.print("front_AB - axis0: ");
-    //     Serial.println(front_AB.encoder_readings.a0_pos_reading);
-    //     Serial.print("front_AB - axis1: ");
-    //     Serial.println(front_AB.encoder_readings.a1_pos_reading);
-    // #endif
-    //   }
-    //   else if (state == 'g')
-    //   { // pull back_KNEE, back_HIP and back_AB's encoder pos and velo
-    // #ifdef DEBUG_SERIAL
-    //     Serial.println("state g");
-    // #endif
-    // #ifdef NORMAL_OPERATION
-    //     Serial.println("-----------------------------------");
-    //     back_KNEE.readEncoderData(2);
-    //     Serial.print("back_KNEE - axis0: ");
-    //     Serial.println(back_KNEE.encoder_readings.a0_pos_reading);
-    //     Serial.print("back_KNEE - axis1: ");
-    //     Serial.println(back_KNEE.encoder_readings.a1_pos_reading);
-    //     back_HIP.readEncoderData(2);
-    //     Serial.print("back_HIP - axis0: ");
-    //     Serial.println(back_HIP.encoder_readings.a0_pos_reading);
-    //     Serial.print("back_HIP - axis1: ");
-    //     Serial.println(back_HIP.encoder_readings.a1_pos_reading);
-    //     back_AB.readEncoderData(2);
-    //     Serial.print("back_AB - axis0: ");
-    //     Serial.println(back_AB.encoder_readings.a0_pos_reading);
-    //     Serial.print("back_AB - axis1: ");
-    //     Serial.println(back_AB.encoder_readings.a1_pos_reading);
-    //     front_KNEE.readEncoderData(2);
-    //     Serial.print("front_KNEE - axis0: ");
-    //     Serial.println(front_KNEE.encoder_readings.a0_pos_reading);
-    //     Serial.print("front_KNEE - axis1: ");
-    //     Serial.println(front_KNEE.encoder_readings.a1_pos_reading);
-    //     front_HIP.readEncoderData(2);
-    //     Serial.print("front_HIP - axis0: ");
-    //     Serial.println(front_HIP.encoder_readings.a0_pos_reading);
-    //     Serial.print("front_HIP - axis1: ");
-    //     Serial.println(front_HIP.encoder_readings.a1_pos_reading);
-    //     front_AB.readEncoderData(2);
-    //     Serial.print("front_AB - axis0: ");
-    //     Serial.println(front_AB.encoder_readings.a0_pos_reading);
-    //     Serial.print("front_AB - axis1: ");
-    //     Serial.println(front_AB.encoder_readings.a1_pos_reading);
-    // #endif
-    //   }
-    //   else if (state == 'z')
-    //   {
-    //     // do nothing
-    //   }
   }
+
+
+
+bool adjust_all_joint_by_type(char jointType, float target_deg, float time_sec)
+{
+    if (jointType == AB)
+    {
+        Serial.println("---------------------------------");
+        Serial.println("Adjusting AB motors location");
+        Serial.print("Moving to: ");
+        Serial.println(target_deg);
+        // front_AB.armAxis();
+        // back_AB.armAxis();
+        // return(front_AB.moveTo_constVelo(RIGHT, -target_deg, time_sec)
+        // && front_AB.moveTo_constVelo(LEFT, target_deg, time_sec)
+        // && back_AB.moveTo_constVelo(RIGHT, target_deg, time_sec)
+        // && back_AB.moveTo_constVelo(LEFT, -target_deg, time_sec));
+        bool r1 = back_AB.moveTo_constVelo(RIGHT, target_deg, time_sec);
+        // bool r1 = true;
+        bool r2 = back_AB.moveTo_constVelo(LEFT, -target_deg, time_sec);
+        return (r1 && r2);
+    }
+    else if (jointType == HIP)
+    {
+        Serial.println("---------------------------------");
+        Serial.println("Adjusting HIP motors location");
+        Serial.print("Moving to: ");
+        Serial.println(target_deg);
+        // front_HIP.armAxis();
+        back_HIP.armAxis();
+        // return(front_HIP.moveTo_constVelo(RIGHT, -target_deg, time_sec)
+        // && front_HIP.moveTo_constVelo(LEFT, target_deg, time_sec)
+        // && back_HIP.moveTo_constVelo(RIGHT, target_deg, time_sec)
+        // && back_HIP.moveTo_constVelo(LEFT, -target_deg, time_sec));
+        return(back_HIP.moveTo_constVelo(RIGHT, target_deg, time_sec)
+        && back_HIP.moveTo_constVelo(LEFT, -target_deg, time_sec));
+    }
+    else if (jointType == KNEE)
+    {
+        Serial.println("---------------------------------");
+        Serial.println("Adjusting KNEE motors location");
+        Serial.print("Moving to: ");
+        Serial.println(target_deg);
+        // front_KNEE.armAxis();
+        back_KNEE.armAxis();
+        // return(front_KNEE.moveTo_constVelo(RIGHT, -target_deg, time_sec)
+        // && front_KNEE.moveTo_constVelo(LEFT, target_deg, time_sec)
+        // && back_KNEE.moveTo_constVelo(RIGHT, target_deg, time_sec)
+        // && back_KNEE.moveTo_constVelo(LEFT, -target_deg, time_sec));
+        return(back_KNEE.moveTo_constVelo(RIGHT, target_deg, time_sec)
+        && back_KNEE.moveTo_constVelo(LEFT, -target_deg, time_sec));
+    }
+    return false;
+}
+
+
+void loop()
+{
+  if (radio.meaningful())
+  {
+    controlPoint.update(radio);
+    bSpline.update(controlPoint);
+  }
+  if (checkTimer())
+  {
+    jointPositions.update(bSpline, time);
+    messenger.send(jointPositions);
+  }
+}
