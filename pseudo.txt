@@ -1,0 +1,59 @@
+// axis-1: left vertical stick - speed in forward direction.
+    // varries from 0 to 1m/s. has 3 steps: 0m/s,  0.5m/s, 1m/s.
+    // the speeds correspond to 3 set of different z-direction speed.
+    // note that z traj becomes a vertical line when speed is 0
+// axis-2: left horizontal stick - yaw speed.
+    // varries from -20 RPM to 20 RPM. has 3 steps: -20 RPM, 0 RPM, 20 RPM.
+    // speeds corresopnd to 3 set of different x-direction speed.
+    // note that x traj becomes a vertical line when speed is 0
+// axis-3: right vertical stick - pitch pos
+    // unimplemented for now
+// axis-4: right horizontal stick - roll pos
+    // unimplemented for now
+
+
+setup()
+{
+    serial.ini(PC)
+    serial.ini(ODrvs)
+    check everything is connected
+    check odrvs have no error
+    check controller input on 4 axis
+    check the joint ranges
+    while(!(above checks are not all true)){repeat the checks until good}
+    move quped from start position to ready position
+    last check axis errors and user continuation confirmation
+        proc
+}
+loop()
+{
+    if metro_timer_1.check()        //respond to controller input at slow rate - 10 hz
+    {
+        if (controller input results in non-zero velocities)
+        {
+            find the corresponding principle points for bspline calc
+            calc and update bspline coefficients - make bspline into a class!
+            
+        }
+        else
+        {
+            // do nothing
+            // plan to be used for single step movement and static posture changes
+        }
+    }
+    if metro.check()    //update at 200 hz (temproray)
+    true:{
+        send new positions and velocities to all 12 motors
+    }
+    false:{
+        do nothing
+    }
+
+
+}
+
+
+class bSpline{
+    public:
+    
+}
