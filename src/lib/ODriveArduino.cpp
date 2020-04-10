@@ -49,7 +49,6 @@ bool ODriveArduino::ini()
         return false;
     }
 }
-
 void ODriveArduino::begin()
 {
     switch(serial_num_)
@@ -565,10 +564,12 @@ void ODriveArduino::SetPosition(char axis_tag, float deg, float degPerSec, float
     if (axis_tag == axis0_tag_)
     {
         serial_ << "p " << 0 << ' ' << transPosition_deg2num(axis_tag, deg) << ' ' << transVelocity_deg2num(axis_tag, degPerSec) << ' ' << current_feedforward << '\n';
+        // Serial << "p " << 0 << ' ' << transPosition_deg2num(axis_tag, deg) << ' ' << transVelocity_deg2num(axis_tag, degPerSec) << ' ' << current_feedforward << '\n';
     }
     else if (axis_tag == axis1_tag_)
     {
         serial_ << "p " << 1 << ' ' << transPosition_deg2num(axis_tag, deg) << ' ' << transVelocity_deg2num(axis_tag, degPerSec) << ' ' << current_feedforward << '\n';
+        // Serial << "p " << 1 << ' ' << transPosition_deg2num(axis_tag, deg) << ' ' << transVelocity_deg2num(axis_tag, degPerSec) << ' ' << current_feedforward << '\n';
     }
 }
 
@@ -618,7 +619,7 @@ void ODriveArduino::readAxisError(char axis_tag)
 {
     if (axis_tag == axis0_tag_)
     {
-        serial_ << "axis0.error" << '\n';
+        serial_ << "r axis0.error" << '\n';
         String feedback = readString();
         if (feedback == "")
         {
@@ -631,7 +632,7 @@ void ODriveArduino::readAxisError(char axis_tag)
     }
     else if (axis_tag == axis1_tag_)
     {
-        serial_ << "axis1.error" << '\n';
+        serial_ << "r axis1.error" << '\n';
         String feedback = readString();
         if (feedback == "")
         {
@@ -940,6 +941,7 @@ void ODriveArduino::calibrate_joint(char mode, char axis_tag)
       }
       if (pos_1_confirm == true && pos_2_confirm == true)
       {
+        Serial.println("---------------------------------");
         Serial.println("Both positions confirmed!");
         Serial.println("Neutral position(zero deg) will be the average of both values");
         Serial.print("Boundary position 1: ");
@@ -953,6 +955,7 @@ void ODriveArduino::calibrate_joint(char mode, char axis_tag)
         String input = Serial.readString();
         while (input != 'y' && input != '1' && input != '2' && input != 'n')
         {
+            Serial.println("---------------------------------");
             Serial.println("Both positions confirmed!");
             Serial.println("Neutral position(zero deg) will be the average of both values");
             Serial.print("Boundary position 1: ");

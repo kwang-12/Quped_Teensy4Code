@@ -1,6 +1,7 @@
 // Libraries:
 #include "src/lib/globals.h"
 #include "src/lib/ODriveArduino.h"
+#include "src/lib/jointPositions.h"
 #include <Metro.h>
 
 // knee gear ratio: 16:20
@@ -11,48 +12,111 @@ String odrv4_name = "front_KNEE";
 String odrv5_name = "front_HIP";
 String odrv6_name = "front_AB";
 
-
 // ODrive object
 ODriveArduino back_KNEE(Serial1, odrv1_name, KNEE, 1, RIGHT, LEFT, SERIAL_BAUD_RATE);  //knee back, axis0-RB, axis1-LB
-ODriveArduino back_HIP(Serial2, odrv2_name, HIP, 2, RIGHT, LEFT, SERIAL_BAUD_RATE);   //hip back, axis0-RB, axis1-LB
-ODriveArduino back_AB(Serial3, odrv3_name, AB, 3, LEFT, RIGHT, SERIAL_BAUD_RATE);    //ab back, axis0-LB, axis1-RB
-ODriveArduino front_KNEE(Serial4, odrv4_name, KNEE, 4, RIGHT, LEFT, SERIAL_BAUD_RATE); //knee front, axis0-RB, axis1-LB
-ODriveArduino front_HIP(Serial5, odrv5_name, HIP, 5, LEFT, RIGHT, SERIAL_BAUD_RATE);  //hip front, axis0-LB, axis1-RB
-ODriveArduino front_AB(Serial7, odrv6_name, AB ,7, LEFT, RIGHT, SERIAL_BAUD_RATE);   //ab front, axis0-LB, axis1-RB
-// Constants
+ODriveArduino back_HIP(Serial2, odrv2_name, HIP, 2, RIGHT, LEFT, SERIAL_BAUD_RATE);    //hip back, axis0-RB, axis1-LB
+ODriveArduino back_AB(Serial3, odrv3_name, AB, 3, LEFT, RIGHT, SERIAL_BAUD_RATE);      //ab back, axis0-LB, axis1-RB
+ODriveArduino front_KNEE(Serial4, odrv4_name, KNEE, 4, LEFT, RIGHT, SERIAL_BAUD_RATE); //knee front, axis0-RB, axis1-LB
+ODriveArduino front_HIP(Serial5, odrv5_name, HIP, 5, LEFT, RIGHT, SERIAL_BAUD_RATE);   //hip front, axis0-LB, axis1-RB
+ODriveArduino front_AB(Serial7, odrv6_name, AB, 7, RIGHT, LEFT, SERIAL_BAUD_RATE);     //ab front, axis0-LB, axis1-RB
+ODriveArduino *back_KNEE_ptr = &back_KNEE;
+ODriveArduino *back_HIP_ptr = &back_HIP;
+ODriveArduino *back_AB_ptr = &back_AB;
+ODriveArduino *front_KNEE_ptr = &front_KNEE;
+ODriveArduino *front_HIP_ptr = &front_HIP;
+ODriveArduino *front_AB_ptr = &front_AB;
 
-// Variables
-String serial_input; // store the input from computer monitor port
-char state = 'z';    // store the state of loop program. By default, 'z' means do nothing.
-float input_pos_state_c;
-float input_pos_state_d;
-float input_pos_state_e;
-float target_k;
-float target_h;
-float target_a;
+// jointPositions object
+jointPositions joint;
+jointPositions *joint_ptr = &joint;
 
+// Initialize timer
+Metro timer = Metro(5);
 
-// Setup variables
-bool setup_state = false;   //indicate the state of finding all joint ranges
-bool front_right_knee_rdy = false;   //indicate if the joint range of front right knee is found
-bool front_right_hip_rdy = false;   //indicate if the joint range of front right hip is found
-bool front_right_ab_rdy = false;   //indicate if the joint range of front right ab is found
-bool front_left_knee_rdy = false;   //indicate if the joint range of front left knee is found
-bool front_left_hip_rdy = false;   //indicate if the joint range of front left hip is found
-bool front_left_ab_rdy = false;   //indicate if the joint range of front left ab is found
-bool back_right_knee_rdy = false;   //indicate if the joint range of back right knee is found
-bool back_right_hip_rdy = false;   //indicate if the joint range of back right hip is found
-bool back_right_ab_rdy = false;   //indicate if the joint range of back right ab is found
-bool back_left_knee_rdy = false;   //indicate if the joint range of back left knee is found
-bool back_left_hip_rdy = false;   //indicate if the joint range of back left hip is found
-bool back_left_ab_rdy = false;   //indicate if the joint range of back left ab is found
+// Initialize trajectory ticker
+int tick_fL = 0;
+int tick_fR = 0;
+int tick_bL = 0;
+int tick_bR = 0;
 
+void odrv_connect(ODriveArduino odrv)
+{
+  if (odrv.ini())
+  {
+#ifdef DEBUG_SERIAL
+    Serial.print(odrv.odrv_name_);
+    Serial.println("COM activated");
+#endif
+  }
+  else
+  {
+#ifdef DEBUG_SERIAL
+    Serial.print(odrv.odrv_name_);
+    Serial.println("COM failed");
+#endif
+  }
+}
 
+void find_joint_neutral_position()
+{
+#ifdef ENABLE_FRONT_LEFT
+  front_AB.find_joint_neutral_position('r', LEFT);
+  front_HIP.find_joint_neutral_position('c', LEFT);
+  front_KNEE.find_joint_neutral_position('r', LEFT);
+#endif
+#ifdef ENABLE_FRONT_RIGHT
+  front_AB.find_joint_neutral_position('r', RIGHT);
+  front_HIP.find_joint_neutral_position('c', RIGHT);
+  front_KNEE.find_joint_neutral_position('r', RIGHT);
+#endif
+#ifdef ENABLE_BACK_LEFT
+  back_AB.find_joint_neutral_position('r', LEFT);
+  back_HIP.find_joint_neutral_position('c', LEFT);
+  back_KNEE.find_joint_neutral_position('r', LEFT);
+#endif
+#ifdef ENABLE_BACK_RIGHT
+  back_AB.find_joint_neutral_position('r', RIGHT);
+  back_HIP.find_joint_neutral_position('c', RIGHT);
+  back_KNEE.find_joint_neutral_position('r', RIGHT);
+#endif
+}
 
-String disable_axis0 = "w axis0.requested_state 1";
-String disable_axis1 = "w axis1.requested_state 1";
-
-// Debug Variables
+void send(jointPositions *joint_ptr, ODriveArduino *front_AB_ptr, ODriveArduino *front_HIP_ptr, ODriveArduino *front_KNEE_ptr,
+          ODriveArduino *back_AB_ptr, ODriveArduino *back_HIP_ptr, ODriveArduino *back_KNEE_ptr)
+{
+#ifdef ENABLE_FRONT_RIGHT
+  front_AB_ptr->SetPosition(RIGHT, joint_ptr->joint_pos_target_deg.fR_ab_pos, joint_ptr->joint_vel_target_deg.fR_ab_velo);
+  front_HIP_ptr->SetPosition(RIGHT, joint_ptr->joint_pos_target_deg.fR_hip_pos, joint_ptr->joint_vel_target_deg.fR_hip_velo);
+  front_KNEE_ptr->SetPosition(RIGHT, joint_ptr->joint_pos_target_deg.fR_knee_pos, joint_ptr->joint_vel_target_deg.fR_knee_velo);
+#endif
+#ifdef ENABLE_FRONT_LEFT
+  front_AB_ptr->SetPosition(LEFT, joint_ptr->joint_pos_target_deg.fL_ab_pos, joint_ptr->joint_vel_target_deg.fL_ab_velo);
+  front_HIP_ptr->SetPosition(LEFT, joint_ptr->joint_pos_target_deg.fL_hip_pos, joint_ptr->joint_vel_target_deg.fL_hip_velo);
+  front_KNEE_ptr->SetPosition(LEFT, joint_ptr->joint_pos_target_deg.fL_knee_pos, joint_ptr->joint_vel_target_deg.fL_knee_velo);
+  Serial.print("ab-pos: ");
+  Serial.print(joint_ptr->joint_pos_target_deg.fL_ab_pos);
+  Serial.print(" ab-velo: ");
+  Serial.print(joint_ptr->joint_vel_target_deg.fL_ab_velo);
+  Serial.print(" hip-pos: ");
+  Serial.print(joint_ptr->joint_pos_target_deg.fL_hip_pos);
+  Serial.print(" hip-velo: ");
+  Serial.print(joint_ptr->joint_vel_target_deg.fL_hip_velo);
+  Serial.print(" knee-pos: ");
+  Serial.print(joint_ptr->joint_pos_target_deg.fL_knee_pos);
+  Serial.print(" knee-velo: ");
+  Serial.println(joint_ptr->joint_vel_target_deg.fL_knee_velo);
+#endif
+#ifdef ENABLE_BACK_RIGHT
+  back_AB_ptr->SetPosition(RIGHT, joint_ptr->joint_pos_target_deg.bR_ab_pos, joint_ptr->joint_vel_target_deg.bR_ab_velo);
+  back_HIP_ptr->SetPosition(RIGHT, joint_ptr->joint_pos_target_deg.bR_hip_pos, joint_ptr->joint_vel_target_deg.bR_hip_velo);
+  back_KNEE_ptr->SetPosition(RIGHT, joint_ptr->joint_pos_target_deg.bR_knee_pos, joint_ptr->joint_vel_target_deg.bR_knee_velo);
+#endif
+#ifdef ENABLE_BACK_LEFT
+  back_AB_ptr->SetPosition(LEFT, joint_ptr->joint_pos_target_deg.bL_ab_pos, joint_ptr->joint_vel_target_deg.bL_ab_velo);
+  back_HIP_ptr->SetPosition(LEFT, joint_ptr->joint_pos_target_deg.bL_hip_pos, joint_ptr->joint_vel_target_deg.bL_hip_velo);
+  back_KNEE_ptr->SetPosition(LEFT, joint_ptr->joint_pos_target_deg.bL_knee_pos, joint_ptr->joint_vel_target_deg.bL_knee_velo);
+#endif
+}
 
 void setup()
 {
@@ -61,658 +125,200 @@ void setup()
   while (!Serial)
     ; // wait for Arduino Serial Monitor to open
   Serial.println("Computer Serial connected");
-
-  // Serial to odrives @ 921600 baud rate
-  if(back_KNEE.ini())
-  {
-    #ifdef DEBUG_SERIAL
-      Serial.println("back KNEE serial communication activated");
-    #endif
-  }
-  else
-  {
-    #ifdef DEBUG_SERIAL
-      Serial.println("back KNEE serial communication failed");
-    #endif
-  }
-  
-  if(back_HIP.ini())
-  {
-    #ifdef DEBUG_SERIAL
-      Serial.println("back HIP serial communication activated");
-    #endif
-  }
-  else
-  {
-    #ifdef DEBUG_SERIAL
-      Serial.println("back HIP serial communication failed");
-    #endif
-  }
-
-  if(back_AB.ini())
-  {
-    #ifdef DEBUG_SERIAL
-      Serial.println("back AB serial communication activated");
-    #endif
-  }
-  else
-  {
-    #ifdef DEBUG_SERIAL
-      Serial.println("back AB serial communication failed");
-    #endif
-  }
-    if(front_KNEE.ini())
-  {
-    #ifdef DEBUG_SERIAL
-      Serial.println("front KNEE serial communication activated");
-    #endif
-  }
-  else
-  {
-    #ifdef DEBUG_SERIAL
-      Serial.println("front KNEE serial communication failed");
-    #endif
-  }
-  
-  if(front_HIP.ini())
-  {
-    #ifdef DEBUG_SERIAL
-      Serial.println("front HIP serial communication activated");
-    #endif
-  }
-  else
-  {
-    #ifdef DEBUG_SERIAL
-      Serial.println("front HIP serial communication failed");
-    #endif
-  }
-
-  if(front_AB.ini())
-  {
-    #ifdef DEBUG_SERIAL
-      Serial.println("front AB serial communication activated");
-    #endif
-  }
-  else
-  {
-    #ifdef DEBUG_SERIAL
-      Serial.println("front AB serial communication failed");
-    #endif
-  }
-  // while (setup_state == false)
-  // {
-
-  // }
-  // front_KNEE.find_joint_neutral_position('r', RIGHT);
-  // front_HIP.find_joint_neutral_position('c', RIGHT);
-  // front_AB.find_joint_neutral_position('r', RIGHT);
-  // front_KNEE.find_joint_neutral_position('r', LEFT);
-  // front_HIP.find_joint_neutral_position('c', LEFT);
-  // front_AB.find_joint_neutral_position('r', LEFT);
-  // back_KNEE.find_joint_neutral_position('r', RIGHT);
-  // back_HIP.find_joint_neutral_position('c', RIGHT);
-  back_AB.find_joint_neutral_position('r', RIGHT);
-  // back_KNEE.find_joint_neutral_position('r', LEFT);
-  // back_HIP.find_joint_neutral_position('c', LEFT);
-  back_AB.find_joint_neutral_position('r', LEFT);
-}
-
-void loop()
-{
-#ifdef DEBUG_SERIAL
-  if (Serial.available() > 0)
-  {
-    serial_input = Serial.readString();
-    Serial.println(serial_input);
-    if (serial_input == "test")
-    {
-      long int neutral_pos = back_KNEE.getAxisNeutralPos(RIGHT);
-      Serial.print("current position: ");
-      Serial.println(back_KNEE.getAxisPos(RIGHT, true));
-      Serial.print("neutral position: ");
-      Serial.println(neutral_pos);
-      Serial.println("start sweeping motion...");
-      state = 'a';
-    }
-    else if (serial_input == "degb")
-    {
-      state = 'b';
-    }
-    else if (serial_input == "degf")
-    {
-      state = 'B';
-    }
-    else if (serial_input == "gk")
-    {
-      state = 'c';
-    }
-    else if (serial_input == "gh")
-    {
-      state = 'd';
-    }
-    else if (serial_input == "ga")
-    {
-      state = 'e';
-    }
-    else if (serial_input == "knee")
-    {
-      state = '!';
-    }
-    else if (serial_input == "hip")
-    {
-      state = '@';
-    }
-    else if (serial_input == "ab")
-    {
-      state = '#';
-    }
-    else if (serial_input == "disarm")
-    {
-      back_KNEE.disarmAxis();
-      back_HIP.disarmAxis();
-      back_AB.disarmAxis();
-      // front_KNEE.disarmAxis();
-      // front_HIP.disarmAxis();
-      // front_AB.disarmAxis();
-    }
-    else if (serial_input == "bab")
-    {
-      Serial.println("send to back-ab...");
-      while(Serial.available()==0);
-      serial_input = Serial.readString();
-      back_AB.EnterCommand(serial_input);
-      Serial.println(back_AB.readString());
-    }
-    else if (serial_input == "bhip")
-    {
-      Serial.println("send to back-hip...");
-      while(Serial.available()==0);
-      serial_input = Serial.readString();
-      back_HIP.EnterCommand(serial_input);
-      Serial.println(back_HIP.readString());
-    }
-    else if (serial_input == "bknee")
-    {
-      Serial.println("send to back-knee...");
-      while(Serial.available()==0);
-      serial_input = Serial.readString();
-      back_KNEE.EnterCommand(serial_input);
-      Serial.println(back_KNEE.readString());
-    }
-    else if (serial_input == "fab")
-    {
-      Serial.println("send to front-ab...");
-      while(Serial.available()==0);
-      serial_input = Serial.readString();
-      front_AB.EnterCommand(serial_input);
-      Serial.println(front_AB.readString());
-    }
-    else if (serial_input == "fhip")
-    {
-      Serial.println("send to front-hip...");
-      while(Serial.available()==0);
-      serial_input = Serial.readString();
-      front_HIP.EnterCommand(serial_input);
-      Serial.println(front_HIP.readString());
-    }
-    else if (serial_input == "fknee")
-    {
-      Serial.println("send to front-knee...");
-      while(Serial.available()==0);
-      serial_input = Serial.readString();
-      front_KNEE.EnterCommand(serial_input);
-      Serial.println(front_KNEE.readString());
-    }
-    else
-    {
-      back_AB.EnterCommand(serial_input);
-      Serial.println(back_AB.readString());
-    }
-  }
-    if (state == 'a' )//&& back_KNEE.armAxis(RIGHT))
-    {
-      bool while_loop_state = true;
-
-      const int max_step_per_cycle = 200;
-      int step_counter = 0;
-      unsigned long int step_time_interval = 5;
-      int run_sec = 10;
-
-      float ini_pos = back_KNEE.transPosition_num2deg(RIGHT, back_KNEE.getAxisPos(RIGHT,true));
-      float vel_per_sec = 1.0;
-      float vel_per_step = vel_per_sec/(float)max_step_per_cycle;
-
-      int start_time = millis();
-      back_KNEE.armAxis(RIGHT);
-      back_KNEE.iniTimer(RIGHT, step_time_interval);
-      while(while_loop_state == true)
-      {
-        if (step_counter == max_step_per_cycle*run_sec)
-        {
-          while_loop_state = false;
-        }
-        if (back_KNEE.checkTimer(RIGHT))
-        {
-          back_KNEE.SetPosition(RIGHT, (float)step_counter*vel_per_step+ini_pos, vel_per_step);
-          Serial.println((float)step_counter*vel_per_step+ini_pos);
-          Serial.println(millis()-start_time);
-          step_counter++;
-        }
-      }
-      back_KNEE.disarmAxis(RIGHT);
-      state = 'z';
-    }
-    else if (state == 'b')
-    {
-      Serial.println("------");
-      Serial.print("bkR");
-      Serial.print(back_KNEE.transPosition_num2deg(RIGHT,back_KNEE.getAxisPos(RIGHT,true)));
-      Serial.print('\t');
-      Serial.print("bhR");
-      Serial.print(back_HIP.transPosition_num2deg(RIGHT,back_HIP.getAxisPos(RIGHT,true)));
-      Serial.print('\t');
-      Serial.print("baR");
-      Serial.print(back_AB.transPosition_num2deg(RIGHT,back_AB.getAxisPos(RIGHT,true)));
-      Serial.print('\t');
-      Serial.print("bkL");
-      Serial.print(back_KNEE.transPosition_num2deg(LEFT,back_KNEE.getAxisPos(LEFT,true)));
-      Serial.print('\t');
-      Serial.print("bhL");
-      Serial.print(back_HIP.transPosition_num2deg(LEFT,back_HIP.getAxisPos(LEFT,true)));
-      Serial.print('\t');
-      Serial.print("baL");
-      Serial.println(back_AB.transPosition_num2deg(LEFT,back_AB.getAxisPos(LEFT,true)));
-    }
-    else if (state == 'B')
-    {
-      Serial.print("fkR");
-      Serial.print(front_KNEE.transPosition_num2deg(RIGHT,front_KNEE.getAxisPos(RIGHT,true)));
-      Serial.print('\t');
-      Serial.print("fhR");
-      Serial.print(front_HIP.transPosition_num2deg(RIGHT,front_HIP.getAxisPos(RIGHT,true)));
-      Serial.print('\t');
-      Serial.print("faR");
-      Serial.print(front_AB.transPosition_num2deg(RIGHT,front_AB.getAxisPos(RIGHT,true)));
-      Serial.print('\t');
-      Serial.print("fkL");
-      Serial.print(front_KNEE.transPosition_num2deg(LEFT,front_KNEE.getAxisPos(LEFT,true)));
-      Serial.print('\t');
-      Serial.print("fhL");
-      Serial.print(front_HIP.transPosition_num2deg(LEFT,front_HIP.getAxisPos(LEFT,true)));
-      Serial.print('\t');
-      Serial.print("faL");
-      Serial.println(front_AB.transPosition_num2deg(LEFT,front_AB.getAxisPos(LEFT,true)));
-      // state = 'z';
-    }
-    else if (state == 'c')
-    {
-      // Serial.print("Current position:");
-      // Serial.println(back_KNEE.transPosition_num2deg(RIGHT, back_KNEE.getAxisPos(RIGHT,true)));
-      // Serial.println("Enter target position.");
-      // while(Serial.available()==0);
-      // input_pos_state_c = Serial.readString().toInt();
-      // Serial.print("Target position: ");
-      // Serial.println(input_pos_state_c);
-      // Serial.println("Enter y to confirm. Enter anything else to redo.");
-      // while(Serial.available()==0);
-      // String input_state = Serial.readString();
-      // while(input_state != 'y')
-      // {
-      //   Serial.print("Current position:");
-      //   Serial.println(back_KNEE.transPosition_num2deg(RIGHT, back_KNEE.getAxisPos(RIGHT,true)));
-      //   Serial.println("Enter target position.");
-      //   while(Serial.available()==0);
-      //   input_pos_state_c = Serial.readString().toInt();
-      //   Serial.print("Target position: ");
-      //   Serial.println(input_pos_state_c);
-      //   Serial.println("Enter y to confirm. Enter anything else to redo.");
-      //   while(Serial.available()==0);
-      //   input_state = Serial.readString();
-      // }
-      // state = '1';
-      // back_KNEE.armAxis(RIGHT);
-
-      
-      Serial.print("Current position:");
-      Serial.println(back_KNEE.transPosition_num2deg(LEFT, back_KNEE.getAxisPos(LEFT,true)));
-      Serial.println("Enter target position.");
-      while(Serial.available()==0);
-      input_pos_state_c = Serial.readString().toInt();
-      Serial.print("Target position: ");
-      Serial.println(input_pos_state_c);
-      Serial.println("Enter y to confirm. Enter anything else to redo.");
-      while(Serial.available()==0);
-      String input_state = Serial.readString();
-      while(input_state != 'y')
-      {
-        Serial.print("Current position:");
-        Serial.println(back_KNEE.transPosition_num2deg(LEFT, back_KNEE.getAxisPos(LEFT,true)));
-        Serial.println("Enter target position.");
-        while(Serial.available()==0);
-        input_pos_state_c = Serial.readString().toInt();
-        Serial.print("Target position: ");
-        Serial.println(input_pos_state_c);
-        Serial.println("Enter y to confirm. Enter anything else to redo.");
-        while(Serial.available()==0);
-        input_state = Serial.readString();
-      }
-      state = '1';
-      back_KNEE.armAxis(LEFT);
-    }
-    else if (state == '1')
-    {
-      if(!back_KNEE.moveTo_constVelo(LEFT, input_pos_state_c, 5.0))
-      {
-
-      }
-      else
-      {
-        state = 'z';
-      }
-    }
-    else if (state == 'd')
-    {
-      // Serial.print("Current position:");
-      // Serial.println(back_HIP.transPosition_num2deg(RIGHT, back_HIP.getAxisPos(RIGHT,true)));
-      // Serial.println("Enter target position.");
-      // while(Serial.available()==0);
-      // input_pos_state_d = Serial.readString().toInt();
-      // Serial.print("Target position: ");
-      // Serial.println(input_pos_state_d);
-      // Serial.println("Enter y to confirm. Enter anything else to redo.");
-      // while(Serial.available()==0);
-      // String input_state = Serial.readString();
-      // while(input_state != 'y')
-      // {
-      //   Serial.print("Current position:");
-      //   Serial.println(back_HIP.transPosition_num2deg(RIGHT, back_HIP.getAxisPos(RIGHT,true)));
-      //   Serial.println("Enter target position.");
-      //   while(Serial.available()==0);
-      //   input_pos_state_d = Serial.readString().toInt();
-      //   Serial.print("Target position: ");
-      //   Serial.println(input_pos_state_d);
-      //   Serial.println("Enter y to confirm. Enter anything else to redo.");
-      //   while(Serial.available()==0);
-      //   input_state = Serial.readString();
-      // }
-      // state = '2';
-      // back_HIP.armAxis(RIGHT);
-
-      
-      Serial.print("Current position:");
-      Serial.println(back_HIP.transPosition_num2deg(LEFT, back_HIP.getAxisPos(LEFT,true)));
-      Serial.println("Enter target position.");
-      while(Serial.available()==0);
-      input_pos_state_d = Serial.readString().toInt();
-      Serial.print("Target position: ");
-      Serial.println(input_pos_state_d);
-      Serial.println("Enter y to confirm. Enter anything else to redo.");
-      while(Serial.available()==0);
-      String input_state = Serial.readString();
-      while(input_state != 'y')
-      {
-        Serial.print("Current position:");
-        Serial.println(back_HIP.transPosition_num2deg(LEFT, back_HIP.getAxisPos(LEFT,true)));
-        Serial.println("Enter target position.");
-        while(Serial.available()==0);
-        input_pos_state_d = Serial.readString().toInt();
-        Serial.print("Target position: ");
-        Serial.println(input_pos_state_d);
-        Serial.println("Enter y to confirm. Enter anything else to redo.");
-        while(Serial.available()==0);
-        input_state = Serial.readString();
-      }
-      state = '2';
-      back_HIP.armAxis(LEFT);
-    }
-    else if (state == '2')
-    {
-      if(!back_HIP.moveTo_constVelo(LEFT, input_pos_state_d, 5.0))
-      {
-
-      }
-      else
-      {
-        state = 'z';
-      }
-    }
-    else if (state == 'e')
-    {
-      // Serial.print("Current position:");
-      // Serial.println(back_AB.transPosition_num2deg(RIGHT, back_AB.getAxisPos(RIGHT,true)));
-      // Serial.println("Enter target position.");
-      // while(Serial.available()==0);
-      // input_pos_state_e = Serial.readString().toInt();
-      // Serial.print("Target position: ");
-      // Serial.println(input_pos_state_d);
-      // Serial.println("Enter y to confirm. Enter anything else to redo.");
-      // while(Serial.available()==0);
-      // String input_state = Serial.readString();
-      // while(input_state != 'y')
-      // {
-      //   Serial.print("Current position:");
-      //   Serial.println(back_AB.transPosition_num2deg(RIGHT, back_AB.getAxisPos(RIGHT,true)));
-      //   Serial.println("Enter target position.");
-      //   while(Serial.available()==0);
-      //   input_pos_state_e = Serial.readString().toInt();
-      //   Serial.print("Target position: ");
-      //   Serial.println(input_pos_state_e);
-      //   Serial.println("Enter y to confirm. Enter anything else to redo.");
-      //   while(Serial.available()==0);
-      //   input_state = Serial.readString();
-      // }
-      // state = '3';
-      // back_AB.armAxis(RIGHT);
-
-      
-      Serial.print("Current position:");
-      Serial.println(back_AB.transPosition_num2deg(LEFT, back_AB.getAxisPos(LEFT,true)));
-      Serial.println("Enter target position.");
-      while(Serial.available()==0);
-      input_pos_state_e = Serial.readString().toInt();
-      Serial.print("Target position: ");
-      Serial.println(input_pos_state_d);
-      Serial.println("Enter y to confirm. Enter anything else to redo.");
-      while(Serial.available()==0);
-      String input_state = Serial.readString();
-      while(input_state != 'y')
-      {
-        Serial.print("Current position:");
-        Serial.println(back_AB.transPosition_num2deg(LEFT, back_AB.getAxisPos(LEFT,true)));
-        Serial.println("Enter target position.");
-        while(Serial.available()==0);
-        input_pos_state_e = Serial.readString().toInt();
-        Serial.print("Target position: ");
-        Serial.println(input_pos_state_e);
-        Serial.println("Enter y to confirm. Enter anything else to redo.");
-        while(Serial.available()==0);
-        input_state = Serial.readString();
-      }
-      state = '3';
-      back_AB.armAxis(LEFT);
-    }
-    else if (state == '3')
-    {
-      if(!back_AB.moveTo_constVelo(LEFT, input_pos_state_e, 5.0))
-      {
-
-      }
-      else
-      {
-        state = 'z';
-      }
-    }
-    else if (state == '!')  //all knee
-    {
-      Serial.println("Enter target position.");
-      while(Serial.available()==0);
-      target_k = Serial.readString().toInt();
-      Serial.print("Target pos: ");
-      Serial.println(target_k);
-      Serial.println("Enter y to confirm. Enter anything else to redo.");
-      while(Serial.available()==0);
-      String input_state = Serial.readString();
-      while(input_state != 'y')
-      {
-        Serial.println("Enter target position.");
-        while(Serial.available()==0);
-        target_k = Serial.readString().toInt();
-        Serial.print("Target pos: ");
-        Serial.println(target_k);
-        Serial.println("Enter y to confirm. Enter anything else to redo.");
-        while(Serial.available()==0);
-        input_state = Serial.readString();
-      }
-      state = '^';
-    }
-    else if (state == '^')
-    {
-      if(!adjust_all_joint_by_type(KNEE, target_k, 5.0))
-      {
-
-      }
-      else
-      {
-        state ='z';
-      }
-    }
-    else if (state == '@')  //all hip
-    {
-      Serial.println("Enter target position.");
-      while(Serial.available()==0);
-      target_h = Serial.readString().toInt();
-      Serial.print("Target pos: ");
-      Serial.println(target_h);
-      Serial.println("Enter y to confirm. Enter anything else to redo.");
-      while(Serial.available()==0);
-      String input_state = Serial.readString();
-      while(input_state != 'y')
-      {
-        Serial.println("Enter target position.");
-        while(Serial.available()==0);
-        target_h = Serial.readString().toInt();
-        Serial.print("Target pos: ");
-        Serial.println(target_h);
-        Serial.println("Enter y to confirm. Enter anything else to redo.");
-        while(Serial.available()==0);
-        input_state = Serial.readString();
-      }
-      state = '&';
-    }
-    else if (state == '&')
-    {
-      if(!adjust_all_joint_by_type(HIP, target_h, 5.0))
-      {
-
-      }
-      else
-      {
-        state ='z';
-      }
-    }
-    else if (state == '#')  //all ab
-    {
-      Serial.println("Enter target position.");
-      while(Serial.available()==0);
-      target_a = Serial.readString().toInt();
-      Serial.print("Target pos: ");
-      Serial.println(target_a);
-      Serial.println("Enter y to confirm. Enter anything else to redo.");
-      while(Serial.available()==0);
-      String input_state = Serial.readString();
-      while(input_state != 'y')
-      {
-        Serial.println("Enter target position.");
-        while(Serial.available()==0);
-        target_a = Serial.readString().toInt();
-        Serial.print("Target pos: ");
-        Serial.println(target_a);
-        Serial.println("Enter y to confirm. Enter anything else to redo.");
-        while(Serial.available()==0);
-        input_state = Serial.readString();
-      }
-      state = '*';
-      back_AB.armAxis();
-    }
-    else if (state == '*')
-    {
-      if(!adjust_all_joint_by_type(AB, target_a, 5.0))
-      {
-
-      }
-      else
-      {
-        state ='z';
-      }
-    }
+#ifdef ENABLE_FRONT
+  odrv_connect(front_AB);
+  odrv_connect(front_HIP);
+  odrv_connect(front_KNEE);
 #endif
+#ifdef ENABLE_BACK
+  odrv_connect(back_AB);
+  odrv_connect(back_HIP);
+  odrv_connect(back_KNEE);
+#endif
+
+  find_joint_neutral_position();
+
+  // radio.calibration();
+  while (true)
+  {
+    Serial.println("Enter stdby to proceed to STANDBY pos");
+    Serial.println("Enter traj to track trajectory");
+    Serial.println("Enter deg to view joint positions");
+    Serial.println("Enter find to calibrate neutral positions");
+    Serial.println("Enter manual to enter manual command mode");
+    while (Serial.available() == 0)
+      ;
+    String serial_input = Serial.readString();
+    if (serial_input == "stdby")
+    {
+// Arm all axes
+#ifdef ENABLE_FRONT
+      front_AB.armAxis();
+      front_HIP.armAxis();
+      front_KNEE.armAxis();
+#endif
+#ifdef ENABLE_BACK
+      back_AB.armAxis();
+      back_HIP.armAxis();
+      back_KNEE.armAxis();
+#endif
+      timer.reset();
+      /**
+     * Start posture conversion until the posture is reached or emergency break from the controller input
+    */
+      unsigned long int stdby_timer = millis();
+      while (!joint.checkPos(STANDBY_POS_FLAG, front_AB_ptr, front_HIP_ptr, front_KNEE_ptr, back_AB_ptr, back_HIP_ptr, back_KNEE_ptr) && millis() - stdby_timer < 4000)
+      {
+        unsigned long int standby_pos_start_time = millis();
+        float elapsedSec = (millis() - standby_pos_start_time) / 1000.0;
+        while (elapsedSec < POS_CONVERSION_TIME)
+        {
+        if (Serial.available() > 0)
+        {
+          Serial.println("stopping pos conversion!");
+      front_AB.disarmAxis();
+      front_HIP.disarmAxis();
+      front_KNEE.disarmAxis();
+          break;
+        }
+          joint.update_constantPos(elapsedSec);
+          // Serial.println(elapsedSec);
+          if (timer.check())
+          {
+            send(joint_ptr, front_AB_ptr, front_HIP_ptr, front_KNEE_ptr, back_AB_ptr, back_HIP_ptr, back_KNEE_ptr);
+          }
+          elapsedSec = (millis() - standby_pos_start_time) / 1000.0;
+        }
+      }
+    }
+    else if (serial_input == "traj")
+    {
+      int loop_counter = 0;
+      int tick_fL = 0;
+      int tick_fR = 100;
+      timer.reset();
+      while (loop_counter < 5)
+      {
+        if (Serial.available() > 0)
+        {
+          Serial.println("stopping traj trace!");
+      front_AB.disarmAxis();
+      front_HIP.disarmAxis();
+      front_KNEE.disarmAxis();
+          break;
+        }
+        if (timer.check())
+        {
+          joint.update_traceTraj(tick_fL,tick_fR,1,1);
+          send(joint_ptr, front_AB_ptr, front_HIP_ptr, front_KNEE_ptr, back_AB_ptr, back_HIP_ptr, back_KNEE_ptr);
+          tick_fL++;
+          if (tick_fL>=0&&tick_fL<=99){
+            tick_fR = tick_fL+100;
+          }
+          else
+          {
+            tick_fR = tick_fL-100;
+          }
+          
+        }
+        if (tick_fL == 200)
+        {
+          loop_counter++;
+          tick_fL = 0;
+          tick_fR = 100;
+        }
+      }
+    }
+    else if (serial_input == "deg")
+    {
+#ifdef ENABLE_FRONT_LEFT
+      Serial.print(" F-AB-L: ");
+      Serial.print(front_AB.transPosition_num2deg(LEFT, front_AB.getAxisPos(LEFT, true)));
+      Serial.print(" F-HIP-L: ");
+      Serial.print(front_HIP.transPosition_num2deg(LEFT, front_HIP.getAxisPos(LEFT, true)));
+      Serial.print(" F-KNEE-L: ");
+      Serial.println(front_KNEE.transPosition_num2deg(LEFT, front_KNEE.getAxisPos(LEFT, true)));
+#endif
+#ifdef ENABLE_FRONT_RIGHT
+      Serial.print(" F-AB-R: ");
+      Serial.print(front_AB.transPosition_num2deg(RIGHT, front_AB.getAxisPos(RIGHT, true)));
+      Serial.print(" F-HIP-R: ");
+      Serial.print(front_HIP.transPosition_num2deg(RIGHT, front_HIP.getAxisPos(RIGHT, true)));
+      Serial.print(" F-KNEE-R: ");
+      Serial.println(front_KNEE.transPosition_num2deg(RIGHT, front_KNEE.getAxisPos(RIGHT, true)));
+#endif
+#ifdef ENABLE_BACK_LEFT
+      Serial.print(" B-AB-L: ");
+      Serial.print(back_AB.transPosition_num2deg(LEFT, back_AB.getAxisPos(LEFT, true)));
+      Serial.print(" B-HIP-L: ");
+      Serial.print(back_HIP.transPosition_num2deg(LEFT, back_HIP.getAxisPos(LEFT, true)));
+      Serial.print(" B-KNEE-L: ");
+      Serial.println(back_KNEE.transPosition_num2deg(LEFT, back_KNEE.getAxisPos(LEFT, true)));
+#endif
+#ifdef ENABLE_BACK_RIGHT
+      Serial.print(" B-AB-R: ");
+      Serial.print(back_AB.transPosition_num2deg(RIGHT, back_AB.getAxisPos(RIGHT, true)));
+      Serial.print(" B-HIP-R: ");
+      Serial.print(back_HIP.transPosition_num2deg(RIGHT, back_HIP.getAxisPos(RIGHT, true)));
+      Serial.print(" B-KNEE-R: ");
+      Serial.println(back_KNEE.transPosition_num2deg(RIGHT, back_KNEE.getAxisPos(RIGHT, true)));
+#endif
+    }
+    else if (serial_input == "dis")
+    {
+#ifdef ENABLE_FRONT
+      front_AB.disarmAxis();
+      front_HIP.disarmAxis();
+      front_KNEE.disarmAxis();
+#endif
+#ifdef ENABLE_BACK
+      back_AB.disarmAxis();
+      back_HIP.disarmAxis();
+      back_KNEE.disarmAxis();
+#endif
+    }
+    else if (serial_input == "find")
+    {
+      find_joint_neutral_position();
+    }
+    else if (serial_input == "manual")
+    {
+      bool exit_flag = false;
+      while (exit_flag == false)
+      {
+        //serial com shit
+      }
+    }
   }
-
-
-
-bool adjust_all_joint_by_type(char jointType, float target_deg, float time_sec)
-{
-    if (jointType == AB)
-    {
-        Serial.println("---------------------------------");
-        Serial.println("Adjusting AB motors location");
-        Serial.print("Moving to: ");
-        Serial.println(target_deg);
-        // front_AB.armAxis();
-        // back_AB.armAxis();
-        // return(front_AB.moveTo_constVelo(RIGHT, -target_deg, time_sec)
-        // && front_AB.moveTo_constVelo(LEFT, target_deg, time_sec)
-        // && back_AB.moveTo_constVelo(RIGHT, target_deg, time_sec)
-        // && back_AB.moveTo_constVelo(LEFT, -target_deg, time_sec));
-        bool r1 = back_AB.moveTo_constVelo(RIGHT, target_deg, time_sec);
-        // bool r1 = true;
-        bool r2 = back_AB.moveTo_constVelo(LEFT, -target_deg, time_sec);
-        return (r1 && r2);
-    }
-    else if (jointType == HIP)
-    {
-        Serial.println("---------------------------------");
-        Serial.println("Adjusting HIP motors location");
-        Serial.print("Moving to: ");
-        Serial.println(target_deg);
-        // front_HIP.armAxis();
-        back_HIP.armAxis();
-        // return(front_HIP.moveTo_constVelo(RIGHT, -target_deg, time_sec)
-        // && front_HIP.moveTo_constVelo(LEFT, target_deg, time_sec)
-        // && back_HIP.moveTo_constVelo(RIGHT, target_deg, time_sec)
-        // && back_HIP.moveTo_constVelo(LEFT, -target_deg, time_sec));
-        return(back_HIP.moveTo_constVelo(RIGHT, target_deg, time_sec)
-        && back_HIP.moveTo_constVelo(LEFT, -target_deg, time_sec));
-    }
-    else if (jointType == KNEE)
-    {
-        Serial.println("---------------------------------");
-        Serial.println("Adjusting KNEE motors location");
-        Serial.print("Moving to: ");
-        Serial.println(target_deg);
-        // front_KNEE.armAxis();
-        back_KNEE.armAxis();
-        // return(front_KNEE.moveTo_constVelo(RIGHT, -target_deg, time_sec)
-        // && front_KNEE.moveTo_constVelo(LEFT, target_deg, time_sec)
-        // && back_KNEE.moveTo_constVelo(RIGHT, target_deg, time_sec)
-        // && back_KNEE.moveTo_constVelo(LEFT, -target_deg, time_sec));
-        return(back_KNEE.moveTo_constVelo(RIGHT, target_deg, time_sec)
-        && back_KNEE.moveTo_constVelo(LEFT, -target_deg, time_sec));
-    }
-    return false;
 }
-
 
 void loop()
 {
-  if (radio.meaningful())
-  {
-    controlPoint.update(radio);
-    bSpline.update(controlPoint);
-  }
-  if (checkTimer())
-  {
-    jointPositions.update(bSpline, time);
-    messenger.send(jointPositions);
-  }
+  // //changes in radio signal is big enough
+  // if (radio.meaningful())
+  // {
+  //   controlPoint.update(radio);
+  //   bSpline.update(controlPoint);
+  // }
+  // else if (radio.getState() == SHUTDOWN)
+  // {
+  //   front_AB.disarmAxis();
+  //   front_HIP.disarmAxis();
+  //   front_KNEE.disarmAxis();
+  //   back_AB.disarmAxis();
+  //   back_HIP.disarmAxis();
+  //   back_KNEE.disarmAxis();
+  // }
+  // // if signal send time step has reached and the radio's input state does not dictate STANDBY posture
+  // if (Timer.check() && radio.getState() != STANDBY)
+  // {
+  //   jointPositions.update(mode=bSpline, bSpline, time);
+  //   messenger.send(jointPositions);
+  // }
+  // // if signal send time step has reached and the radio's input state dictates STANDBY posture
+  // else if (Timer.check() && radio.getState() == STANDBY)
+  // {
+  //   jointPositions.update(mode=constantPos, STANDBY_POS, time);
+  //   messenger.send(jointPositions);
+  // }
 }
