@@ -677,6 +677,26 @@ long int ODriveArduino::getAxisPos(char axis_tag, bool refresh_flag)
     }
 }
 
+int ODriveArduino::getAxisError(char axis_tag, bool refresh_flag)
+{
+    if (axis_tag == axis0_tag_)
+    {
+        if (refresh_flag == true)
+        {
+            readAxisError(axis_tag);
+        }
+        return axis0_error_;
+    }
+    else if (axis_tag == axis1_tag_)
+    {
+        if (refresh_flag == true)
+        {
+            readAxisError(axis_tag);
+        }
+        return axis1_error_;
+    }
+}
+
 String ODriveArduino::readString()
 {
     String str = "";

@@ -130,6 +130,7 @@ public:
     // getters
     long int getAxisNeutralPos(char axis_tag);
     long int getAxisPos(char axis_tag, bool refresh_flag);
+    int getAxisError(char axis_tag, bool refresh_flag);
 
     // General params
     String readString();

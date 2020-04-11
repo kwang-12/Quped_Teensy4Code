@@ -5,8 +5,8 @@
 
 #define ENABLE_FRONT_LEFT
 #define ENABLE_FRONT_RIGHT
-// #define ENABLE_BACK_LEFT
-// #define ENABLE_BACK_RIGHT
+#define ENABLE_BACK_LEFT
+#define ENABLE_BACK_RIGHT
 
 #if defined(ENABLE_FRONT_LEFT) || defined(ENABLE_FRONT_RIGHT)
   #define ENABLE_FRONT
@@ -37,6 +37,15 @@
 
 #define LEG_LEFT_POS_MULTIPLIER (short int)-1
 #define LEG_RIGHT_POS_MULTIPLIER (short int)1
+
+#define TROT_GAIT 't'
+#define PACE_GAIT 'p'
+#define BOUND_GAIT 'b'
+#define WAVE_GAIT 'w'
+
+#define GAIT_STARTING 's'
+#define GAIT_ENDING 'e'
+#define GAIT_NORMAL 'n'
 
 
 template <class T>
