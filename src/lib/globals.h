@@ -1,4 +1,6 @@
 #pragma once
+#include <cmath>
+
 // Development modes:
 #define DEBUG_SERIAL
 // #define NORMAL_OPERATION
@@ -15,7 +17,6 @@
 #if defined(ENABLE_BACK_LEFT) || defined(ENABLE_BACK_RIGHT)
   #define ENABLE_BACK
 #endif
-
 
 #define SERIAL_BAUD_RATE 921600
 #define SERIAL_MSG_TIME_INTERVAL 5

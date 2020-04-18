@@ -65,24 +65,24 @@ void odrv_connect(ODriveArduino odrv)
 void find_joint_neutral_position()
 {
 #ifdef ENABLE_FRONT_LEFT
-  front_AB.find_joint_neutral_position('r', LEFT);
-  front_HIP.find_joint_neutral_position('c', LEFT);
-  front_KNEE.find_joint_neutral_position('r', LEFT);
+ front_AB.find_joint_neutral_position('r', LEFT);
+ front_HIP.find_joint_neutral_position('c', LEFT);
+ front_KNEE.find_joint_neutral_position('r', LEFT);
 #endif
 #ifdef ENABLE_FRONT_RIGHT
-  front_AB.find_joint_neutral_position('r', RIGHT);
-  front_HIP.find_joint_neutral_position('c', RIGHT);
-  front_KNEE.find_joint_neutral_position('r', RIGHT);
+ front_AB.find_joint_neutral_position('r', RIGHT);
+ front_HIP.find_joint_neutral_position('c', RIGHT);
+ front_KNEE.find_joint_neutral_position('r', RIGHT);
 #endif
 #ifdef ENABLE_BACK_LEFT
-  back_AB.find_joint_neutral_position('r', LEFT);
-  back_HIP.find_joint_neutral_position('c', LEFT);
-  back_KNEE.find_joint_neutral_position('r', LEFT);
+ back_AB.find_joint_neutral_position('r', LEFT);
+ back_HIP.find_joint_neutral_position('c', LEFT);
+ back_KNEE.find_joint_neutral_position('r', LEFT);
 #endif
 #ifdef ENABLE_BACK_RIGHT
-  back_AB.find_joint_neutral_position('r', RIGHT);
-  back_HIP.find_joint_neutral_position('c', RIGHT);
-  back_KNEE.find_joint_neutral_position('r', RIGHT);
+ back_AB.find_joint_neutral_position('r', RIGHT);
+ back_HIP.find_joint_neutral_position('c', RIGHT);
+ back_KNEE.find_joint_neutral_position('r', RIGHT);
 #endif
 }
 /**
@@ -209,13 +209,84 @@ void readError()
   Serial.println(back_AB.getAxisError(LEFT, true));
 #endif
 #ifdef ENABLE_BACK_RIGHT
-  Serial.print(" B-KNEE-R ");
+  Serial.print(" B-KNEE-R: ");
   Serial.print(back_KNEE.getAxisError(RIGHT, true));
   Serial.print(" B-HIP-R: ");
   Serial.print(back_HIP.getAxisError(RIGHT, true));
   Serial.print(" B-AB-R: ");
   Serial.println(back_AB.getAxisError(RIGHT, true));
 #endif
+}
+
+void calibJoints()
+{
+  String calib_input = "yeah";
+  while (calib_input != "exit")
+  {
+    Serial.println("-----------------------------------------");
+#ifdef ENABLE_FRONT
+    Serial.println("Enter fab to calibrate front AB joints");
+    Serial.println("Enter fhip to calibrate front HIP joints");
+    Serial.println("Enter fknee to calibrate front KNEE joints");
+#endif
+#ifdef ENABLE_BACK
+    Serial.println("Enter bab to calibrate back AB joints");
+    Serial.println("Enter bhip to calibrate back HIP joints");
+    Serial.println("Enter bknee to calibrate back KNEE joints");
+#endif
+    Serial.println("Enter exit to exit the calibration sequence");
+    while (Serial.available() == 0)
+      ;
+    calib_input = Serial.readString();
+    if (calib_input == "fab")
+    {
+#ifdef ENABLE_FRONT
+      Serial.println("Calibrating front AB joints");
+      front_AB.run_state(0, 3, false);
+      front_AB.run_state(1, 3, false);
+#endif
+    }
+    else if (calib_input == "fhip")
+    {
+#ifdef ENABLE_FRONT
+      Serial.println("Calibrating front HIP joints");
+      front_HIP.run_state(0, 3, false);
+      front_HIP.run_state(1, 3, false);
+#endif
+    }
+    else if (calib_input == "fknee")
+    {
+#ifdef ENABLE_FRONT
+      Serial.println("Calibrating front KNEE joints");
+      front_KNEE.run_state(0, 3, false);
+      front_KNEE.run_state(1, 3, false);
+#endif
+    }
+    else if (calib_input == "bab")
+    {
+#ifdef ENABLE_BACK
+      Serial.println("Calibrating back AB joints");
+      back_AB.run_state(0, 3, false);
+      back_AB.run_state(1, 3, false);
+#endif
+    }
+    else if (calib_input == "bhip")
+    {
+#ifdef ENABLE_BACK
+      Serial.println("Calibrating back HIP joints");
+      back_HIP.run_state(0, 3, false);
+      back_HIP.run_state(1, 3, false);
+#endif
+    }
+    else if (calib_input == "bknee")
+    {
+#ifdef ENABLE_BACK
+      Serial.println("Calibrating back KNEE joints");
+      back_KNEE.run_state(0, 3, false);
+      back_KNEE.run_state(1, 3, false);
+#endif
+    }
+  }
 }
 
 void setup()
@@ -236,19 +307,20 @@ void setup()
   odrv_connect(back_KNEE);
 #endif
 
-  find_joint_neutral_position();
-
   // radio.calibration();
   while (true)
   {
-    Serail.println("-----------------------------------------");
-    Serial.println("Enter stdby to proceed to STANDBY pos");
-    Serial.println("Enter traj to track trajectory");
-    Serial.println("Enter dis to disarm all motors");
-    Serial.println("Enter deg to view joint positions");
+    Serial.println("=========================================");
+    Serial.println("Enter readError to read axes error code");
     Serial.println("Enter calib to initiate joint calibration sequence");
     Serial.println("Enter find to calibrate neutral positions");
-    Serial.println("Enter readError to read axes error code");
+    Serial.println("-----------------------------------------");
+    Serial.println("Enter stdby to proceed to STANDBY pos");
+    Serial.println("Enter traj1 to track trajectory-1");
+    Serial.println("Enter traj2 to track trajectory-2");
+    Serial.println("Enter traj3 to track trajectory-3");
+    Serial.println("Enter dis to disarm all motors");
+    Serial.println("Enter deg to view joint positions");
     Serial.println("Enter manual to enter manual command mode");
     while (Serial.available() == 0)
       ;
@@ -296,8 +368,11 @@ void setup()
         }
       }
     }
-    else if (serial_input == "traj")
+    else if (serial_input == "traj1")
     {
+      Serial.println("delaying...");
+      delay(10000);
+      Serial.println("starting...");
       int loop_counter = 0;
       reset_tick();
       //GAIT_STARTING
@@ -319,7 +394,7 @@ void setup()
         }
         if (timer.check())
         {
-          joint.update_traceTraj(tick_fL, tick_fR, tick_bL, tick_bR);
+          joint.update_traceTraj(tick_fL, tick_fR, tick_bL, tick_bR, 1);
           send(joint_ptr, front_AB_ptr, front_HIP_ptr, front_KNEE_ptr, back_AB_ptr, back_HIP_ptr, back_KNEE_ptr);
           update_tick(TROT_GAIT, GAIT_STARTING);
         }
@@ -342,7 +417,7 @@ void setup()
         }
         if (timer.check())
         {
-          joint.update_traceTraj(tick_fL, tick_fR, tick_bL, tick_bR);
+          joint.update_traceTraj(tick_fL, tick_fR, tick_bL, tick_bR, 1);
           send(joint_ptr, front_AB_ptr, front_HIP_ptr, front_KNEE_ptr, back_AB_ptr, back_HIP_ptr, back_KNEE_ptr);
           update_tick(TROT_GAIT, GAIT_NORMAL);
         }
@@ -372,7 +447,7 @@ void setup()
         }
         if (timer.check())
         {
-          joint.update_traceTraj(tick_fL, tick_fR, tick_bL, tick_bR);
+          joint.update_traceTraj(tick_fL, tick_fR, tick_bL, tick_bR, 1);
           send(joint_ptr, front_AB_ptr, front_HIP_ptr, front_KNEE_ptr, back_AB_ptr, back_HIP_ptr, back_KNEE_ptr);
           update_tick(TROT_GAIT, GAIT_ENDING);
         }
@@ -382,7 +457,202 @@ void setup()
         if (timer.check())
         {
           reset_tick();
-          joint.update_traceTraj(tick_fL, tick_fR, tick_bL, tick_bR);
+          joint.update_traceTraj(tick_fL, tick_fR, tick_bL, tick_bR, 1);
+          send(joint_ptr, front_AB_ptr, front_HIP_ptr, front_KNEE_ptr, back_AB_ptr, back_HIP_ptr, back_KNEE_ptr);
+        }
+      }
+      timer.reset();
+      break_out_flag = false;
+    }
+
+    else if (serial_input == "traj2")
+    {
+      Serial.println("delaying...");
+      delay(10000);
+      Serial.println("starting...");
+      int loop_counter = 0;
+      reset_tick();
+      //GAIT_STARTING
+      timer.reset();
+      while (tick_fL <= 99)
+      {
+        if (Serial.available() > 0)
+        {
+          Serial.println("stopping traj trace!");
+          front_AB.disarmAxis();
+          front_HIP.disarmAxis();
+          front_KNEE.disarmAxis();
+          break_out_flag = true;
+          break;
+        }
+        if (break_out_flag == true)
+        {
+          break;
+        }
+        if (timer.check())
+        {
+          joint.update_traceTraj(tick_fL, tick_fR, tick_bL, tick_bR, 2);
+          send(joint_ptr, front_AB_ptr, front_HIP_ptr, front_KNEE_ptr, back_AB_ptr, back_HIP_ptr, back_KNEE_ptr);
+          update_tick(TROT_GAIT, GAIT_STARTING);
+        }
+      }
+      //GAIT_NORMAL
+      while (loop_counter < 5)
+      {
+        if (Serial.available() > 0)
+        {
+          Serial.println("stopping traj trace!");
+          front_AB.disarmAxis();
+          front_HIP.disarmAxis();
+          front_KNEE.disarmAxis();
+          break_out_flag = true;
+          break;
+        }
+        if (break_out_flag == true)
+        {
+          break;
+        }
+        if (timer.check())
+        {
+          joint.update_traceTraj(tick_fL, tick_fR, tick_bL, tick_bR, 2);
+          send(joint_ptr, front_AB_ptr, front_HIP_ptr, front_KNEE_ptr, back_AB_ptr, back_HIP_ptr, back_KNEE_ptr);
+          update_tick(TROT_GAIT, GAIT_NORMAL);
+        }
+        if (tick_fL == 200)
+        {
+          loop_counter++;
+          tick_fL = 0;
+          tick_fR = 100;
+          tick_bL = 100;
+          tick_bR = 0;
+        }
+      }
+      //GAIT_ENDING
+      while (tick_fR < 200)
+      {
+        if (Serial.available() > 0)
+        {
+          Serial.println("stopping traj trace!");
+          front_AB.disarmAxis();
+          front_HIP.disarmAxis();
+          front_KNEE.disarmAxis();
+          break;
+        }
+        if (break_out_flag == true)
+        {
+          break;
+        }
+        if (timer.check())
+        {
+          joint.update_traceTraj(tick_fL, tick_fR, tick_bL, tick_bR,2);
+          send(joint_ptr, front_AB_ptr, front_HIP_ptr, front_KNEE_ptr, back_AB_ptr, back_HIP_ptr, back_KNEE_ptr);
+          update_tick(TROT_GAIT, GAIT_ENDING);
+        }
+      }
+      while (tick_fR == 200)
+      {
+        if (timer.check())
+        {
+          reset_tick();
+          joint.update_traceTraj(tick_fL, tick_fR, tick_bL, tick_bR,2);
+          send(joint_ptr, front_AB_ptr, front_HIP_ptr, front_KNEE_ptr, back_AB_ptr, back_HIP_ptr, back_KNEE_ptr);
+        }
+      }
+      timer.reset();
+      break_out_flag = false;
+    }
+
+
+    else if (serial_input == "traj3")
+    {
+      Serial.println("delaying...");
+      delay(10000);
+      Serial.println("starting...");
+      int loop_counter = 0;
+      reset_tick();
+      //GAIT_STARTING
+      timer.reset();
+      while (tick_fL <= 99)
+      {
+        if (Serial.available() > 0)
+        {
+          Serial.println("stopping traj trace!");
+          front_AB.disarmAxis();
+          front_HIP.disarmAxis();
+          front_KNEE.disarmAxis();
+          break_out_flag = true;
+          break;
+        }
+        if (break_out_flag == true)
+        {
+          break;
+        }
+        if (timer.check())
+        {
+          joint.update_traceTraj(tick_fL, tick_fR, tick_bL, tick_bR,3);
+          send(joint_ptr, front_AB_ptr, front_HIP_ptr, front_KNEE_ptr, back_AB_ptr, back_HIP_ptr, back_KNEE_ptr);
+          update_tick(TROT_GAIT, GAIT_STARTING);
+        }
+      }
+      //GAIT_NORMAL
+      while (loop_counter < 5)
+      {
+        if (Serial.available() > 0)
+        {
+          Serial.println("stopping traj trace!");
+          front_AB.disarmAxis();
+          front_HIP.disarmAxis();
+          front_KNEE.disarmAxis();
+          break_out_flag = true;
+          break;
+        }
+        if (break_out_flag == true)
+        {
+          break;
+        }
+        if (timer.check())
+        {
+          joint.update_traceTraj(tick_fL, tick_fR, tick_bL, tick_bR,3);
+          send(joint_ptr, front_AB_ptr, front_HIP_ptr, front_KNEE_ptr, back_AB_ptr, back_HIP_ptr, back_KNEE_ptr);
+          update_tick(TROT_GAIT, GAIT_NORMAL);
+        }
+        if (tick_fL == 200)
+        {
+          loop_counter++;
+          tick_fL = 0;
+          tick_fR = 100;
+          tick_bL = 100;
+          tick_bR = 0;
+        }
+      }
+      //GAIT_ENDING
+      while (tick_fR < 200)
+      {
+        if (Serial.available() > 0)
+        {
+          Serial.println("stopping traj trace!");
+          front_AB.disarmAxis();
+          front_HIP.disarmAxis();
+          front_KNEE.disarmAxis();
+          break;
+        }
+        if (break_out_flag == true)
+        {
+          break;
+        }
+        if (timer.check())
+        {
+          joint.update_traceTraj(tick_fL, tick_fR, tick_bL, tick_bR,3);
+          send(joint_ptr, front_AB_ptr, front_HIP_ptr, front_KNEE_ptr, back_AB_ptr, back_HIP_ptr, back_KNEE_ptr);
+          update_tick(TROT_GAIT, GAIT_ENDING);
+        }
+      }
+      while (tick_fR == 200)
+      {
+        if (timer.check())
+        {
+          reset_tick();
+          joint.update_traceTraj(tick_fL, tick_fR, tick_bL, tick_bR,3);
           send(joint_ptr, front_AB_ptr, front_HIP_ptr, front_KNEE_ptr, back_AB_ptr, back_HIP_ptr, back_KNEE_ptr);
         }
       }
@@ -444,6 +714,10 @@ void setup()
     else if (serial_input == "readError")
     {
       readError();
+    }
+    else if (serial_input == "calib")
+    {
+      calibJoints();
     }
     else if (serial_input == "manual")
     {
