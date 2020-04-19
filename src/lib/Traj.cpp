@@ -8,6 +8,12 @@ Traj::Traj(float *x, float *y, float *z, float *time)
         op_traj.z[tick] = z[tick];
         op_traj.time_vector[tick] = time[tick];
     }
+    calc_op_velo();
+    calc_jt_traj();
+}
+
+void Traj::calc_op_velo()
+{
     op_traj.ini_velo[0] = (op_traj.x[1] - op_traj.x[0]) / (op_traj.time_vector[1] - op_traj.time_vector[0]);
     op_traj.ini_velo[1] = (op_traj.y[1] - op_traj.y[0]) / (op_traj.time_vector[1] - op_traj.time_vector[0]);
     op_traj.ini_velo[2] = (op_traj.z[1] - op_traj.z[0]) / (op_traj.time_vector[1] - op_traj.time_vector[0]);
@@ -16,8 +22,28 @@ Traj::Traj(float *x, float *y, float *z, float *time)
     op_traj.end_velo[2] = (op_traj.z[20] - op_traj.z[19]) / (op_traj.time_vector[20] - op_traj.time_vector[19]);
 }
 
+void Traj::calc_jt_traj()
+{
+    float current_ab = AB_STANDBY_POS_DEG/180.0*PI;
+    float current_hip = HIP_STANDBY_POS_DEG/180.0*PI;
+    float current_knee = KNEE_STANDBY_POS_DEG/180.0*PI;
+    float* joint_pos = iK(&current_ab, &current_hip, &current_knee, &op_traj.x[0], &op_traj.y[0], &op_traj.z[0]);
+    jt_traj.ab[0] = joint_pos[0];
+    jt_traj.hip[0] = joint_pos[1];
+    jt_traj.knee[0] = joint_pos[2];
+    for (int tick=1; tick<21; tick++)
+    {
+        joint_pos = iK(&jt_traj.ab[tick-1], &jt_traj.hip[tick-1], &jt_traj.knee[tick-1], &op_traj.x[tick], &op_traj.y[tick], &op_traj.z[tick]);
+        jt_traj.ab[tick] = joint_pos[0];
+        jt_traj.hip[tick] = joint_pos[1];
+        jt_traj.knee[tick] = joint_pos[2];
+    }
+    
+}
+
+
 // Note that the function does not check for no solution case
-float Traj::*iK(float *current_ab, float *current_hip, float *current_knee,
+float* Traj::iK(float *current_ab, float *current_hip, float *current_knee,
                 float *desired_x, float *desired_y, float *desired_z)
 {
     static float array[3] = {0.0, 0.0, 0.0};

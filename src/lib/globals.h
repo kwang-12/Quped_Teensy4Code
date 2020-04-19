@@ -48,6 +48,8 @@
 #define GAIT_ENDING 'e'
 #define GAIT_NORMAL 'n'
 
+#define PI (float)3.141592653
+
 
 template <class T>
 inline Print &operator<<(Print &obj, T arg)

@@ -62,6 +62,10 @@ private:
     /**
      * Inverse kinematics calculation
      */
-    float *iK(float *current_ab, float *current_hip, float *current_knee,
-              float *desired_x, float *desired_y, float desired_z);
+    float* iK(float *current_ab, float *current_hip, float *current_knee,
+              float *desired_x, float *desired_y, float *desired_z);
+    /**
+     * Jacbian calculation
+     */
+    
 };

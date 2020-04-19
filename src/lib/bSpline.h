@@ -3,42 +3,26 @@
 class bSpline
 {
 private:
-    /**
-     * bSpline properties
-     */
-    struct properties
-    {
+public:
         // degree of freedom
         unsigned short k = 7;
         // number of points
-        unsigned short num_points = ;
-        unsigned short n = 
+        unsigned short num_points = 21;
+        unsigned short n = 26;
         // knot vector
-        float U = ;
-    }properties;
-    /**
-     * Control points
-     */
-    struct control_points
-    {
-        // float AB = [];
-        // float HIP = [];
-        // float KNEE = [];
-        // float AB_velo = [];
-        // float HIP_velo = [];
-        // float KNEE_velo = [];
-    }control_points;
+        float U[35];
+        // time vector
+        float time_[21];
+        // control points
+        float ctrl_point_[27];
 public:
     /**
      * Constructor
-     * @param x pointer to operational trajectory in x direction
-     * @param y pointer to operational trajectory in y direction
-     * @param z pointer to operational trajectory in z direction
-     * @param time pointer to operational trajectories' time vector
-     * @param size number of elements in the vector
+     * @param ctrl_point pointer to control points
+     * @param time pointer to operational trajectories' time array
      * Note that x y z are segemented by time
      */
-    bSpline(float *x, float *y, float *z, float *time, unsigned short size);
+    bSpline(float *ctrl_point, float *time);
 
     /**
      * Get bSpline point given time input
@@ -52,16 +36,8 @@ private:
      */
     void calc_knot();
     /**
-     * Calculate bSpline control points
-     */
-    void calc_ctrlPoint();
-    /**
      * Calculate bSpline basis function
      */
-    void calc_base();
-    /**
-     * Calculate bSpline ratio function
-     */
-    void calc_ratio();
+    float calc_base(float *time_stamp, unsigned short count, unsigned short k);
 
 };
