@@ -1,14 +1,14 @@
 #pragma once
-#include <cmath>
+// #include <cmath>
 
 // Development modes:
 #define DEBUG_SERIAL
 // #define NORMAL_OPERATION
 
 #define ENABLE_FRONT_LEFT
-#define ENABLE_FRONT_RIGHT
-#define ENABLE_BACK_LEFT
-#define ENABLE_BACK_RIGHT
+// #define ENABLE_FRONT_RIGHT
+// #define ENABLE_BACK_LEFT
+// #define ENABLE_BACK_RIGHT
 
 #if defined(ENABLE_FRONT_LEFT) || defined(ENABLE_FRONT_RIGHT)
   #define ENABLE_FRONT
@@ -48,18 +48,19 @@
 #define GAIT_ENDING 'e'
 #define GAIT_NORMAL 'n'
 
-#define PI (float)3.141592653
+#define PI_math (float)3.141592653
 
-
-template <class T>
-inline Print &operator<<(Print &obj, T arg)
-{
-  obj.print(arg);
-  return obj;
-}
-template <>
-inline Print &operator<<(Print &obj, float arg)
-{
-  obj.print(arg, 4);
-  return obj;
-}
+// template<class T> inline Print& operator <<(Print &obj,     T arg) { obj.print(arg);    return obj; }
+// template<>        inline Print& operator <<(Print &obj, float arg) { obj.print(arg, 4); return obj; }
+// template <class T>
+// inline Print &operator<<(Print &obj, T arg)
+// {
+//   obj.print(arg);
+//   return obj;
+// }
+// template <>
+// inline Print &operator<<(Print &obj, float arg)
+// {
+//   obj.print(arg, 4);
+//   return obj;
+// }

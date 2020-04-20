@@ -5,24 +5,25 @@ class bSpline
 private:
 public:
         // degree of freedom
-        unsigned short k = 7;
-        // number of points
-        unsigned short num_points = 21;
-        unsigned short n = 26;
+        unsigned short k_ = 7;
+        // number of operational space points
+        unsigned short num_points_;
         // knot vector
-        float U[35];
+        float U[70];
         // time vector
-        float time_[21];
+        float time_[60];
         // control points
-        float ctrl_point_[27];
+        float ctrl_point_[60];
 public:
     /**
      * Constructor
      * @param ctrl_point pointer to control points
      * @param time pointer to operational trajectories' time array
+     * @param cp_size number of control points
+     * @param 
      * Note that x y z are segemented by time
      */
-    bSpline(float *ctrl_point, float *time);
+    bSpline(float *ctrl_point, float *time, unsigned short num_points);
 
     /**
      * Get bSpline point given time input

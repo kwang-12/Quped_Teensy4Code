@@ -79,7 +79,8 @@ void ODriveArduino::begin()
 
 void ODriveArduino::EnterCommand(String command)
 {
-    serial_ << command << '\n';
+    serial_.println(command);
+    // serial_ << command << '\n';
 }
 
 long int ODriveArduino::transPosition_deg2num(char axis_tag, float deg)
@@ -297,7 +298,8 @@ bool ODriveArduino::armAxis(char axis_tag)
 {
     if (axis_tag == axis0_tag_) //check if already armed
     {
-        serial_ << "r axis0.current_state" << '\n';
+        serial_.println("r axis0.current_state");
+        // serial_ << "r axis0.current_state" << '\n';
         if(readInt() == 8)
         {
             Serial.print(odrv_name_);
@@ -308,9 +310,11 @@ bool ODriveArduino::armAxis(char axis_tag)
         }
         else
         {
-            serial_ << "w axis0.requested_state 8" << '\n';
+            serial_.println("w axis0.requested_state 8");
+            // serial_ << "w axis0.requested_state 8" << '\n';
             delay(100);
-            serial_ << "r axis0.current_state" << '\n';
+            serial_.println("r axis0.current_state");
+            // serial_ << "r axis0.current_state" << '\n';
             if(readInt() != 8)
             {
                 Serial.print(odrv_name_);
@@ -334,7 +338,8 @@ bool ODriveArduino::armAxis(char axis_tag)
     }
     else if (axis_tag == axis1_tag_)
     {
-        serial_ << "r axis1.current_state" << '\n';
+        serial_.println("r axis1.current_state");
+        // serial_ << "r axis1.current_state" << '\n';
         if(readInt() == 8)
         {
             Serial.print(odrv_name_);
@@ -345,9 +350,11 @@ bool ODriveArduino::armAxis(char axis_tag)
         }
         else
         {
-            serial_ << "w axis1.requested_state 8" << '\n';
+            serial_.println("w axis1.requested_state 8");
+            // serial_ << "w axis1.requested_state 8" << '\n';
             delay(100);
-            serial_ << "r axis1.current_state" << '\n';
+            serial_.println("r axis1.current_state");
+            // serial_ << "r axis1.current_state" << '\n';
             if(readInt() != 8)
             {
                 Serial.print(odrv_name_);
@@ -369,9 +376,11 @@ bool ODriveArduino::armAxis(char axis_tag)
             }
         }
     }
-    serial_ << "r axis0.current_state" << '\n';
+    serial_.println("r axis0.current_state");
+    // serial_ << "r axis0.current_state" << '\n';
     int state_a0 = readInt();
-    serial_ << "r axis1.current_state" << '\n';
+    serial_.println("r axis1.current_state");
+    // serial_ << "r axis1.current_state" << '\n';
     int state_a1 = readInt();
     if (state_a0 == 8 && state_a1 == 8)
     {
@@ -384,10 +393,13 @@ bool ODriveArduino::armAxis(char axis_tag)
     }
     else
     {
-        serial_ << "w axis0.requested_state 8" << '\n';
-        serial_ << "w axis1.requested_state 8" << '\n';
+        serial_.println("w axis0.requested_state 8");
+        serial_.println("w axis1.requested_state 8");
+        // serial_ << "w axis0.requested_state 8" << '\n';
+        // serial_ << "w axis1.requested_state 8" << '\n';
         delay(100);
-        serial_ << "r axis0.current_state" << '\n';
+        serial_.println("r axis0.current_state");
+        // serial_ << "r axis0.current_state" << '\n';
         state_a0 = readInt();
         if (state_a0 != 8)
         {
@@ -406,7 +418,8 @@ bool ODriveArduino::armAxis(char axis_tag)
             Serial.println(axis_tag);
             Serial.println("axis 0 arming success!");
         }
-        serial_ << "r axis1.current_state" << '\n';
+        serial_.println("r axis1.current_state");
+        // serial_ << "r axis1.current_state" << '\n';
         state_a1 = readInt();
         if (state_a1 != 8)
         {
@@ -437,9 +450,11 @@ bool ODriveArduino::disarmAxis(char axis_tag)
 {
     if (axis_tag == axis0_tag_)
     {
-        serial_ << "w axis0.requested_state 1" << '\n';
+        serial_.println("w axis0.requested_state 1");
+        // serial_ << "w axis0.requested_state 1" << '\n';
         delay(100);
-        serial_ << "r axis0.current_state" << '\n';
+        serial_.println("r axis0.current_state");
+        // serial_ << "r axis0.current_state" << '\n';
         if(readInt() != 1)
         {
             Serial.print(odrv_name_);
@@ -462,9 +477,11 @@ bool ODriveArduino::disarmAxis(char axis_tag)
     }
     else if (axis_tag == axis1_tag_)
     {
-        serial_ << "w axis1.requested_state 1" << '\n';
+        serial_.println("w axis1.requested_state 1");
+        // serial_ << "w axis1.requested_state 1" << '\n';
         delay(100);
-        serial_ << "r axis1.current_state" << '\n';
+        serial_.println("r axis1.current_state");
+        // serial_ << "r axis1.current_state" << '\n';
         if(readInt() != 1)
         {
             Serial.print(odrv_name_);
@@ -485,9 +502,11 @@ bool ODriveArduino::disarmAxis(char axis_tag)
             return true;
         }
     }
-    serial_ << "r axis0.current_state" << '\n';
+    serial_.println("r axis0.current_state");
+    // serial_ << "r axis0.current_state" << '\n';
     int state_a0 = readInt();
-    serial_ << "r axis1.current_state" << '\n';
+    serial_.println("r axis1.current_state");
+    // serial_ << "r axis1.current_state" << '\n';
     int state_a1 = readInt();
     if (state_a0 == 1 && state_a1 == 1)
     {
@@ -500,10 +519,13 @@ bool ODriveArduino::disarmAxis(char axis_tag)
     }
     else
     {
-        serial_ << "w axis0.requested_state 1" << '\n';
-        serial_ << "w axis1.requested_state 1" << '\n';
+        serial_.println("w axis0.requested_state 1");
+        serial_.println("w axis1.requested_state 1");
+        // serial_ << "w axis0.requested_state 1" << '\n';
+        // serial_ << "w axis1.requested_state 1" << '\n';
         delay(100);
-        serial_ << "r axis0.current_state" << '\n';
+        serial_.println("r axis0.current_state");
+        // serial_ << "r axis0.current_state" << '\n';
         state_a0 = readInt();
         if (state_a0 != 1 )
         {
@@ -522,7 +544,8 @@ bool ODriveArduino::disarmAxis(char axis_tag)
             Serial.println(axis_tag);
             Serial.println("axis 0 disarming success!");
         }
-        serial_ << "r axis1.current_state" << '\n';
+        serial_.println("r axis1.current_state");
+        // serial_ << "r axis1.current_state" << '\n';
         state_a1 = readInt();
         if (state_a1 != 1)
         {
@@ -563,12 +586,30 @@ void ODriveArduino::SetPosition(char axis_tag, float deg, float degPerSec, float
 {
     if (axis_tag == axis0_tag_)
     {
-        serial_ << "p " << 0 << ' ' << transPosition_deg2num(axis_tag, deg) << ' ' << transVelocity_deg2num(axis_tag, degPerSec) << ' ' << current_feedforward << '\n';
+        serial_.print('p');
+        serial_.print(' ');
+        serial_.print('0');
+        serial_.print(' ');
+        serial_.print(transPosition_deg2num(axis_tag, deg));
+        serial_.print(' ');
+        serial_.print(transVelocity_deg2num(axis_tag, degPerSec));
+        serial_.print(' ');
+        serial_.println(current_feedforward);
+        // serial_ << "p " << 0 << ' ' << transPosition_deg2num(axis_tag, deg) << ' ' << transVelocity_deg2num(axis_tag, degPerSec) << ' ' << current_feedforward << '\n';
         // Serial << "p " << 0 << ' ' << transPosition_deg2num(axis_tag, deg) << ' ' << transVelocity_deg2num(axis_tag, degPerSec) << ' ' << current_feedforward << '\n';
     }
     else if (axis_tag == axis1_tag_)
     {
-        serial_ << "p " << 1 << ' ' << transPosition_deg2num(axis_tag, deg) << ' ' << transVelocity_deg2num(axis_tag, degPerSec) << ' ' << current_feedforward << '\n';
+        serial_.print('p');
+        serial_.print(' ');
+        serial_.print('1');
+        serial_.print(' ');
+        serial_.print(transPosition_deg2num(axis_tag, deg));
+        serial_.print(' ');
+        serial_.print(transVelocity_deg2num(axis_tag, degPerSec));
+        serial_.print(' ');
+        serial_.println(current_feedforward);
+        // serial_ << "p " << 1 << ' ' << transPosition_deg2num(axis_tag, deg) << ' ' << transVelocity_deg2num(axis_tag, degPerSec) << ' ' << current_feedforward << '\n';
         // Serial << "p " << 1 << ' ' << transPosition_deg2num(axis_tag, deg) << ' ' << transVelocity_deg2num(axis_tag, degPerSec) << ' ' << current_feedforward << '\n';
     }
 }
@@ -603,7 +644,8 @@ void ODriveArduino::readEncoderData(char axis_tag='a')
     // }
     // else    //read encoder position of both motor
     // {
-        serial_ << "e" << '\n';
+        serial_.println('e');
+        // serial_ << "e" << '\n';
         String str = readString();
         int delim_pos_a = str.indexOf(' ');
         int delim_pos_b = str.indexOf(' ', delim_pos_a + 1);
@@ -619,7 +661,8 @@ void ODriveArduino::readAxisError(char axis_tag)
 {
     if (axis_tag == axis0_tag_)
     {
-        serial_ << "r axis0.error" << '\n';
+        serial_.println("r axis0.error");
+        // serial_ << "r axis0.error" << '\n';
         String feedback = readString();
         if (feedback == "")
         {
@@ -632,7 +675,8 @@ void ODriveArduino::readAxisError(char axis_tag)
     }
     else if (axis_tag == axis1_tag_)
     {
-        serial_ << "r axis1.error" << '\n';
+        serial_.println("r axis1.error");
+        // serial_ << "r axis1.error" << '\n';
         String feedback = readString();
         if (feedback == "")
         {
@@ -1121,13 +1165,20 @@ void ODriveArduino::calibrate_joint(char mode, char axis_tag)
 bool ODriveArduino::run_state(int axis, int requested_state, bool wait)
 {
     int timeout_ctr = 100;
-    serial_ << "w axis" << axis << ".requested_state " << requested_state << '\n';
+    serial_.print("w axis");
+    serial_.print(axis);
+    serial_.print(".requested_state ");
+    serial_.println(requested_state);
+    // serial_ << "w axis" << axis << ".requested_state " << requested_state << '\n';
     if (wait)
     {
         do
         {
             delay(100);
-            serial_ << "r axis" << axis << ".current_state\n";
+            serial_.print("r axis");
+            serial_.print(axis);
+            serial_.println(".current_state");
+            // serial_ << "r axis" << axis << ".current_state\n";
         } while (readInt() != AXIS_STATE_IDLE && --timeout_ctr > 0);
     }
 

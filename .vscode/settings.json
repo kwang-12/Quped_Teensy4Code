@@ -6,6 +6,8 @@
         "xhash": "cpp",
         "xstring": "cpp",
         "xutility": "cpp",
-        "cmath": "cpp"
+        "cmath": "cpp",
+        "cstdlib": "cpp",
+        "xtr1common": "cpp"
     }
 }

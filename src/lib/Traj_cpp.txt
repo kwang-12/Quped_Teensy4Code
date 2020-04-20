@@ -24,9 +24,9 @@ void Traj::calc_op_velo()
 
 void Traj::calc_jt_traj()
 {
-    float current_ab = AB_STANDBY_POS_DEG/180.0*PI;
-    float current_hip = HIP_STANDBY_POS_DEG/180.0*PI;
-    float current_knee = KNEE_STANDBY_POS_DEG/180.0*PI;
+    float current_ab = AB_STANDBY_POS_DEG/180.0*PI_math;
+    float current_hip = HIP_STANDBY_POS_DEG/180.0*PI_math;
+    float current_knee = KNEE_STANDBY_POS_DEG/180.0*PI_math;
     float* joint_pos = iK(&current_ab, &current_hip, &current_knee, &op_traj.x[0], &op_traj.y[0], &op_traj.z[0]);
     jt_traj.ab[0] = joint_pos[0];
     jt_traj.hip[0] = joint_pos[1];
@@ -53,7 +53,7 @@ float* Traj::iK(float *current_ab, float *current_hip, float *current_knee,
     {
         float theta_3_1 = atan2(sqrt(1 - pow(c3, (float)2.0)), c3);
         float theta_3_2 = atan2(-sqrt(1 - pow(c3, (float)2.0)), c3);
-        if (abs(theta_3_1 - *current_knee) >= abs(theta_3_2 - *current_knee))
+        if (std::abs(theta_3_1 - *current_knee) >= std::abs(theta_3_2 - *current_knee))
         {
             array[2] = theta_3_2;
         }
@@ -70,7 +70,7 @@ float* Traj::iK(float *current_ab, float *current_hip, float *current_knee,
     {
         float theta_2_1 = atan2(sqrt(pow(a, (float)2.0) + pow(b, (float)2.0) - pow(c, (float)2.0)), c) + atan2(b, a);
         float theta_2_2 = atan2(-sqrt(pow(a, (float)2.0) + pow(b, (float)2.0) - pow(c, (float)2.0)), c) + atan2(b, a);
-        if (abs(theta_2_1-*current_hip) >= abs(theta_2_2 - *current_hip))
+        if (std::abs(theta_2_1-*current_hip) >= std::abs(theta_2_2 - *current_hip))
         {
             array[1] = theta_2_2;
         }
@@ -87,7 +87,7 @@ float* Traj::iK(float *current_ab, float *current_hip, float *current_knee,
     {
         float theta_1_1 = atan2(sqrt(pow(a, (float)2.0) + pow(b, (float)2.0) - pow(c, (float)2.0)), c) + atan2(b, a);
         float theta_1_2 = atan2(-sqrt(pow(a, (float)2.0) + pow(b, (float)2.0) - pow(c, (float)2.0)), c) + atan2(b, a);
-        if (abs(theta_1_1-*current_ab) >= abs(theta_1_2-*current_ab))
+        if (std::abs(theta_1_1-*current_ab) >= std::abs(theta_1_2-*current_ab))
         {
             array[0] = theta_1_2;
         }

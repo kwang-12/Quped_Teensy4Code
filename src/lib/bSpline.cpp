@@ -1,31 +1,32 @@
 #include "bSpline.h"
-bSpline::bSpline(float *ctrl_point, float *time)
+bSpline::bSpline(float *ctrl_point, float *time, unsigned short num_points)
 {
-    for (int tick=0; tick<27; tick++)
+    for (int tick=0; tick<num_points+k_*2; tick++)
     {
-        if (tick<21)
+        if (tick<num_points)
         {
             time_[tick] = time[tick];
         }
         ctrl_point_[tick] = ctrl_point[tick];
     }
+    num_points_ = num_points;
     calc_knot();
 }
 void bSpline::calc_knot()
 {
-    for(int tick=0; tick<35; tick++)   
+    for(int tick=0; tick<num_points_+k_*2; tick++)   
     {
-        if (tick<k+1)
+        if (tick<k_+1)
         {
             U[tick] = 0;
         }
-        else if (tick>num_points+k-1)
+        else if (tick>num_points_+k_-1)
         {
-            U[tick] = time_[20];
+            U[tick] = time_[num_points_-1];
         }
         else
         {
-            U[tick] = U[tick-1] + time_[tick-k]-time_[tick-k-1];
+            U[tick] = U[tick-1] + time_[tick-k_]-time_[tick-k_-1];
         }
     }
 }
@@ -34,7 +35,7 @@ float bSpline::calc_base(float *time_stamp, unsigned short count, unsigned short
     float pos = 0.0;
     if (k == 0)
     {
-        if (*time_stamp != U[35])
+        if (*time_stamp != U[num_points_+2*k_-1])
         {
             if (U[count] <= *time_stamp && *time_stamp < U[count+1])
             {
@@ -76,9 +77,9 @@ float bSpline::calc_base(float *time_stamp, unsigned short count, unsigned short
 float bSpline::get_point(float *timestamp)
 {
     float pos = 0.0;
-    for (unsigned short tick=0; tick<n+1; tick++)
+    for (unsigned short tick=0; tick<num_points_+k_-1; tick++)
     {
-        pos = pos+calc_base(timestamp, tick, k)*ctrl_point_[tick];
+        pos = pos+calc_base(timestamp, tick, k_)*ctrl_point_[tick];
     }
     return pos;
 }
