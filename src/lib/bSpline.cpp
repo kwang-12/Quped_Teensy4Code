@@ -1,19 +1,27 @@
 #include "bSpline.h"
-bSpline::bSpline(float *ctrl_point, float *time, unsigned short num_points)
+bSpline::bSpline(float *ctrl_point, float *time, unsigned short num_points, unsigned short dof)
 {
-    for (int tick=0; tick<num_points+k_*2; tick++)
+    num_points_ = num_points;
+    k_ = dof;
+    for (int tick=0; tick<num_points_+k_-1; tick++)
     {
-        if (tick<num_points)
+        // Serial.print("tick: ");
+        // Serial.print(tick);
+        if (tick<num_points_)
         {
             time_[tick] = time[tick];
+        // Serial.print(" time: ");
+        //     Serial.print(time_[tick],4);
         }
         ctrl_point_[tick] = ctrl_point[tick];
+        // Serial.print(" cp: ");
+        //     Serial.println(ctrl_point_[tick],4);
     }
-    num_points_ = num_points;
     calc_knot();
 }
 void bSpline::calc_knot()
 {
+    // Serial.println("U: ");
     for(int tick=0; tick<num_points_+k_*2; tick++)   
     {
         if (tick<k_+1)
@@ -28,6 +36,9 @@ void bSpline::calc_knot()
         {
             U[tick] = U[tick-1] + time_[tick-k_]-time_[tick-k_-1];
         }
+        // Serial.print(tick);
+        // Serial.print(' ');
+        // Serial.println(U[tick],4);
     }
 }
 float bSpline::calc_base(float *time_stamp, unsigned short count, unsigned short k)
@@ -77,6 +88,7 @@ float bSpline::calc_base(float *time_stamp, unsigned short count, unsigned short
 float bSpline::get_point(float *timestamp)
 {
     float pos = 0.0;
+    int boundary_val = 0;
     for (unsigned short tick=0; tick<num_points_+k_-1; tick++)
     {
         pos = pos+calc_base(timestamp, tick, k_)*ctrl_point_[tick];

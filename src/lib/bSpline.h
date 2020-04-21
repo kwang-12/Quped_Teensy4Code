@@ -1,11 +1,12 @@
 #pragma once
 #include "globals.h"
+#include <arduino.h>
 class bSpline
 {
 private:
 public:
         // degree of freedom
-        unsigned short k_ = 7;
+        unsigned short k_;
         // number of operational space points
         unsigned short num_points_;
         // knot vector
@@ -14,6 +15,8 @@ public:
         float time_[60];
         // control points
         float ctrl_point_[60];
+        // pos/vel flag
+        char prop_flag_;
 public:
     /**
      * Constructor
@@ -23,7 +26,7 @@ public:
      * @param 
      * Note that x y z are segemented by time
      */
-    bSpline(float *ctrl_point, float *time, unsigned short num_points);
+    bSpline(float *ctrl_point, float *time, unsigned short num_points, unsigned short dof);
 
     /**
      * Get bSpline point given time input
