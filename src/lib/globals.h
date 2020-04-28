@@ -19,7 +19,8 @@
 #endif
 
 #define SERIAL_BAUD_RATE 921600
-#define SERIAL_MSG_TIME_INTERVAL 5
+#define SERIAL_MSG_TIMER 5
+#define SERIAL_MSG_TIME_INTERVAL (float)5/1000
 
 #define LEFT 'L'
 #define RIGHT 'R'
@@ -42,6 +43,7 @@
 #define TROT_GAIT 't'
 #define PACE_GAIT 'p'
 #define BOUND_GAIT 'b'
+#define CRAWL_GAIT 'c'
 #define WAVE_GAIT 'w'
 
 #define GAIT_STARTING 's'

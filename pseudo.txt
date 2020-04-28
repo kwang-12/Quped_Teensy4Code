@@ -57,3 +57,32 @@ class bSpline{
     public:
     
 }
+
+
+  // //changes in radio signal is big enough
+  // if (radio.meaningful())
+  // {
+  //   controlPoint.update(radio);
+  //   bSpline.update(controlPoint);
+  // }
+  // else if (radio.getState() == SHUTDOWN)
+  // {
+  //   front_AB.disarmAxis();
+  //   front_HIP.disarmAxis();
+  //   front_KNEE.disarmAxis();
+  //   back_AB.disarmAxis();
+  //   back_HIP.disarmAxis();
+  //   back_KNEE.disarmAxis();
+  // }
+  // // if signal send time step has reached and the radio's input state does not dictate STANDBY posture
+  // if (Timer.check() && radio.getState() != STANDBY)
+  // {
+  //   jointPositions.update(mode=bSpline, bSpline, time);
+  //   messenger.send(jointPositions);
+  // }
+  // // if signal send time step has reached and the radio's input state dictates STANDBY posture
+  // else if (Timer.check() && radio.getState() == STANDBY)
+  // {
+  //   jointPositions.update(mode=constantPos, STANDBY_POS, time);
+  //   messenger.send(jointPositions);
+  // }
