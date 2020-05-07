@@ -448,6 +448,8 @@ bool ODriveArduino::armAxis(char axis_tag)
 
 bool ODriveArduino::disarmAxis(char axis_tag)
 {
+    Serial.println("yes");
+    Serial.println(axis_tag);
     if (axis_tag == axis0_tag_)
     {
         serial_.println("w axis0.requested_state 1");
@@ -502,12 +504,15 @@ bool ODriveArduino::disarmAxis(char axis_tag)
             return true;
         }
     }
-    serial_.println("r axis0.current_state");
-    // serial_ << "r axis0.current_state" << '\n';
+    Serial.println("sending");
+    // serial_.println("r axis0.current_state");
+    serial_ << "r axis0.current_state" << '\n';
     int state_a0 = readInt();
-    serial_.println("r axis1.current_state");
-    // serial_ << "r axis1.current_state" << '\n';
+    // serial_.println("r axis1.current_state");
+    serial_ << "r axis1.current_state" << '\n';
+    Serial.print("sent");
     int state_a1 = readInt();
+    Serial.println("pass");
     if (state_a0 == 1 && state_a1 == 1)
     {
         Serial.print(odrv_name_);
@@ -586,31 +591,31 @@ void ODriveArduino::SetPosition(char axis_tag, float deg, float degPerSec, float
 {
     if (axis_tag == axis0_tag_)
     {
-        serial_.print('p');
-        serial_.print(' ');
-        serial_.print('0');
-        serial_.print(' ');
-        serial_.print(transPosition_deg2num(axis_tag, deg));
-        serial_.print(' ');
-        serial_.print(transVelocity_deg2num(axis_tag, degPerSec));
-        serial_.print(' ');
-        serial_.println(current_feedforward);
-        // serial_ << "p " << 0 << ' ' << transPosition_deg2num(axis_tag, deg) << ' ' << transVelocity_deg2num(axis_tag, degPerSec) << ' ' << current_feedforward << '\n';
-        // Serial << "p " << 0 << ' ' << transPosition_deg2num(axis_tag, deg) << ' ' << transVelocity_deg2num(axis_tag, degPerSec) << ' ' << current_feedforward << '\n';
+        // serial_.print('p');
+        // serial_.print(' ');
+        // serial_.print('0');
+        // serial_.print(' ');
+        // serial_.print(transPosition_deg2num(axis_tag, deg));
+        // serial_.print(' ');
+        // serial_.print(transVelocity_deg2num(axis_tag, degPerSec));
+        // serial_.print(' ');
+        // serial_.println(current_feedforward);
+        serial_ << "p " << 0 << ' ' << transPosition_deg2num(axis_tag, deg) << ' ' << transVelocity_deg2num(axis_tag, degPerSec) << ' ' << current_feedforward << '\n';
+        Serial << "p " << 0 << ' ' << transPosition_deg2num(axis_tag, deg) << ' ' << transVelocity_deg2num(axis_tag, degPerSec) << ' ' << current_feedforward << '\n';
     }
     else if (axis_tag == axis1_tag_)
     {
-        serial_.print('p');
-        serial_.print(' ');
-        serial_.print('1');
-        serial_.print(' ');
-        serial_.print(transPosition_deg2num(axis_tag, deg));
-        serial_.print(' ');
-        serial_.print(transVelocity_deg2num(axis_tag, degPerSec));
-        serial_.print(' ');
-        serial_.println(current_feedforward);
-        // serial_ << "p " << 1 << ' ' << transPosition_deg2num(axis_tag, deg) << ' ' << transVelocity_deg2num(axis_tag, degPerSec) << ' ' << current_feedforward << '\n';
-        // Serial << "p " << 1 << ' ' << transPosition_deg2num(axis_tag, deg) << ' ' << transVelocity_deg2num(axis_tag, degPerSec) << ' ' << current_feedforward << '\n';
+        // serial_.print('p');
+        // serial_.print(' ');
+        // serial_.print('1');
+        // serial_.print(' ');
+        // serial_.print(transPosition_deg2num(axis_tag, deg));
+        // serial_.print(' ');
+        // serial_.print(transVelocity_deg2num(axis_tag, degPerSec));
+        // serial_.print(' ');
+        // serial_.println(current_feedforward);
+        serial_ << "p " << 1 << ' ' << transPosition_deg2num(axis_tag, deg) << ' ' << transVelocity_deg2num(axis_tag, degPerSec) << ' ' << current_feedforward << '\n';
+        Serial << "p " << 1 << ' ' << transPosition_deg2num(axis_tag, deg) << ' ' << transVelocity_deg2num(axis_tag, degPerSec) << ' ' << current_feedforward << '\n';
     }
 }
 
@@ -644,8 +649,8 @@ void ODriveArduino::readEncoderData(char axis_tag='a')
     // }
     // else    //read encoder position of both motor
     // {
-        serial_.println('e');
-        // serial_ << "e" << '\n';
+        // serial_.println('e');
+        serial_ << "e" << '\n';
         String str = readString();
         int delim_pos_a = str.indexOf(' ');
         int delim_pos_b = str.indexOf(' ', delim_pos_a + 1);
@@ -661,8 +666,8 @@ void ODriveArduino::readAxisError(char axis_tag)
 {
     if (axis_tag == axis0_tag_)
     {
-        serial_.println("r axis0.error");
-        // serial_ << "r axis0.error" << '\n';
+        // serial_.println("r axis0.error");
+        serial_ << "r axis0.error" << '\n';
         String feedback = readString();
         if (feedback == "")
         {
@@ -675,8 +680,8 @@ void ODriveArduino::readAxisError(char axis_tag)
     }
     else if (axis_tag == axis1_tag_)
     {
-        serial_.println("r axis1.error");
-        // serial_ << "r axis1.error" << '\n';
+        // serial_.println("r axis1.error");
+        serial_ << "r axis1.error" << '\n';
         String feedback = readString();
         if (feedback == "")
         {

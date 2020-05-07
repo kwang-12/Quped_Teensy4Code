@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include "globals.h"
 #include "ODriveArduino.h"
+#include "bSpline.h"
 
 class jointPositions
 {
@@ -205,5 +206,22 @@ class jointPositions
      * @param tick number of data tick
     */
    void update_traceTraj(int tick_fL, int tick_fR, int tick_bL, int tick_bR, int set_selection);
+
+   /**
+    * bspline trace
+    * @param ab_pos_spline  pointer to ab position spline
+    * @param ab_vel_spline  pointer to ab position spline
+    * @param hip_pos_spline  pointer to ab position spline
+    * @param hip_vel_spline  pointer to ab position spline
+    * @param knee_pos_spline  pointer to ab position spline
+    * @param knee_vel_spline  pointer to ab position spline
+    * @param time_fL pointer to front left leg time stamp
+    * @param time_fR pointer to front right leg time stamp
+    * @param time_bL pointer to back left leg time stamp
+    * @param time_bR pointer to back right leg time stamp
+    */
+   void update_bsplineTraj(bSpline *ab_pos_spline, bSpline *ab_vel_spline, bSpline *hip_pos_spline, bSpline *hip_vel_spline, 
+   bSpline *knee_pos_spline, bSpline *knee_vel_spline, float *time_fL, float *time_fR, float *time_bL, float *time_bR,
+   bool *flag_fL_end, bool *flag_fR_end, bool *flag_bL_end, bool *flag_bR_end);
 
 };

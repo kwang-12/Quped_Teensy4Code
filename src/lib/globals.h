@@ -1,14 +1,14 @@
 #pragma once
 #include <cmath>
-
+#include <arduino.h>
 // Development modes:
 #define DEBUG_SERIAL
 // #define NORMAL_OPERATION
 
 #define ENABLE_FRONT_LEFT
-// #define ENABLE_FRONT_RIGHT
-// #define ENABLE_BACK_LEFT
-// #define ENABLE_BACK_RIGHT
+#define ENABLE_FRONT_RIGHT
+#define ENABLE_BACK_LEFT
+#define ENABLE_BACK_RIGHT
 
 #if defined(ENABLE_FRONT_LEFT) || defined(ENABLE_FRONT_RIGHT)
   #define ENABLE_FRONT
@@ -40,20 +40,36 @@
 #define LEG_LEFT_POS_MULTIPLIER (short int)-1
 #define LEG_RIGHT_POS_MULTIPLIER (short int)1
 
+/**
+ * Different choice of gaits
+ */
 #define TROT_GAIT 't'
 #define PACE_GAIT 'p'
 #define BOUND_GAIT 'b'
 #define CRAWL_GAIT 'c'
 #define WAVE_GAIT 'w'
 
+/**
+ * State of the gaits
+ * Default state: GAIT_IDLE - Indicates that the leg is stationary and holding at default position
+ */
+#define GAIT_IDLE 'i'
 #define GAIT_STARTING 's'
 #define GAIT_ENDING 'e'
 #define GAIT_NORMAL 'n'
+#define GAIT_ONESTEP '1'
+
+/**
+ * State-machine states
+ */
+#define STATE_IDLE 'z'
+#define STATE_1_STEP '1'
+#define STATE_CONTINUOUS 'c'
 
 #define PI_math (float)3.141592653
 
-// template<class T> inline Print& operator <<(Print &obj,     T arg) { obj.print(arg);    return obj; }
-// template<>        inline Print& operator <<(Print &obj, float arg) { obj.print(arg, 4); return obj; }
+template<class T> inline Print& operator <<(Print &obj,     T arg) { obj.print(arg);    return obj; }
+template<>        inline Print& operator <<(Print &obj, float arg) { obj.print(arg, 4); return obj; }
 // template <class T>
 // inline Print &operator<<(Print &obj, T arg)
 // {

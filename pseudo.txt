@@ -86,3 +86,11 @@ class bSpline{
   //   jointPositions.update(mode=constantPos, STANDBY_POS, time);
   //   messenger.send(jointPositions);
   // }
+
+
+
+
+  loop
+  {
+      
+  }
