@@ -46,7 +46,7 @@
 #define TROT_GAIT 't'
 #define PACE_GAIT 'p'
 #define BOUND_GAIT 'b'
-#define CRAWL_GAIT 'c'
+#define CRAWL_GAIT 'c'    // Standard crawl gait where each leg is off-phased by 0.25
 #define WAVE_GAIT 'w'
 
 /**
