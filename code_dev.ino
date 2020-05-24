@@ -3,6 +3,7 @@
 #include "src/lib/ODriveArduino.h"
 #include "src/lib/jointPositions.h"
 #include "src/lib/bSpline.h"
+#include "src/lib/kinematics.h"
 #include <Metro.h>
 
 // knee gear ratio: 16:20
@@ -106,17 +107,17 @@ struct cp_2
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 0.0};
   float hip_pos[23] = {
-      0.695828411290931,0.695828411290931,0.695828411290931,0.830217112877060,0.793869046768671,
-      0.878370085436553,0.907739619067237,0.923292076837951,1.05554233762791,1.25555484749189,
-      1.07939798308279,0.913295921962567,0.684612344710261,0.447925255508338,0.340043859443014,
-      0.336090642539108,0.409776937075361,0.466341706823257,0.572023746328263,0.553328656728651,
-      0.695828411290931,0.695828411290931,0.695828411290931};
+      0.695828411290931, 0.695828411290931, 0.695828411290931, 0.830217112877060, 0.793869046768671,
+      0.878370085436553, 0.907739619067237, 0.923292076837951, 1.05554233762791, 1.25555484749189,
+      1.07939798308279, 0.913295921962567, 0.684612344710261, 0.447925255508338, 0.340043859443014,
+      0.336090642539108, 0.409776937075361, 0.466341706823257, 0.572023746328263, 0.553328656728651,
+      0.695828411290931, 0.695828411290931, 0.695828411290931};
   float hip_vel[22] = {
-      0.0,0.0,1.11990584655107,-0.227175413177431,0.502982373023104,
-      0.215952453166798,0.149542863179946,1.83680917763829,5.00031274659948,-4.40392161022754,
-      -4.15255152800547,-5.71708943130766,-5.91717723004808,-2.69703490163310,-0.0549057903320299,
-      0.708522062848585,0.415917424616889,0.629059758958367,-0.116844309997578,1.18749795468567,
-      0.0,0.0};
+      0.0, 0.0, 1.11990584655107, -0.227175413177431, 0.502982373023104,
+      0.215952453166798, 0.149542863179946, 1.83680917763829, 5.00031274659948, -4.40392161022754,
+      -4.15255152800547, -5.71708943130766, -5.91717723004808, -2.69703490163310, -0.0549057903320299,
+      0.708522062848585, 0.415917424616889, 0.629059758958367, -0.116844309997578, 1.18749795468567,
+      0.0, 0.0};
   float knee_pos[23] = {
       1.34883464940023, 1.34883464940023, 1.34883464940023, 1.34092511661378, 1.32475585330151,
       1.30279731457381, 1.27890634121836, 1.22139644000072, 1.35307177158772, 1.64642431633239,
@@ -124,10 +125,10 @@ struct cp_2
       1.22139644000072, 1.27890634121837, 1.30279731457380, 1.32475585330152, 1.34092511661378,
       1.34883464940023, 1.34883464940023, 1.34883464940023};
   float knee_vel[22] = {
-      0.0, 0.0, -0.0659127732204186, -0.101057895701677, -0.130705587664862, 
-      -0.175668921731310,-0.552979819400347, 1.82882404981945, 7.33381361861677, 1.40575705059255, 
-      1.48139739813791,-1.48139739813790, -1.40575705059256, -7.33381361861673, -1.82882404981952,
-      0.552979819400512,0.175668921731126, 0.130705587664976, 0.101057895701627, 0.0659127732204242,
+      0.0, 0.0, -0.0659127732204186, -0.101057895701677, -0.130705587664862,
+      -0.175668921731310, -0.552979819400347, 1.82882404981945, 7.33381361861677, 1.40575705059255,
+      1.48139739813791, -1.48139739813790, -1.40575705059256, -7.33381361861673, -1.82882404981952,
+      0.552979819400512, 0.175668921731126, 0.130705587664976, 0.101057895701627, 0.0659127732204242,
       0.0, 0.0};
   float time[19] = {
       0.0, 0.20, 0.40, 0.60, 0.80, 0.84, 0.88, 0.92, 0.96, 1.0,
@@ -145,17 +146,17 @@ struct cp_3
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 0.0};
   float hip_pos[23] = {
-      0.695828411290931,0.710114125576645,0.738685554148074,0.776962442711200,0.827152473978189,
-      0.869562452032170,0.908403037041549,0.923215485008620,1.05555774519973,1.25554821193897,
-      1.07940084010833,0.913294692130314,0.684612873467137,0.447925029647121,0.340043952493870,
-      0.336090513507162,0.409777238794797,0.466341438500659,0.572023903655302,0.553328620472556,
-      0.695828411290931,0.695828411290931,0.695828411290931};
+      0.695828411290931, 0.710114125576645, 0.738685554148074, 0.776962442711200, 0.827152473978189,
+      0.869562452032170, 0.908403037041549, 0.923215485008620, 1.05555774519973, 1.25554821193897,
+      1.07940084010833, 0.913294692130314, 0.684612873467137, 0.447925029647121, 0.340043952493870,
+      0.336090513507162, 0.409777238794797, 0.466341438500659, 0.572023903655302, 0.553328620472556,
+      0.695828411290931, 0.695828411290931, 0.695828411290931};
   float hip_vel[22] = {
-      0.357142857142859,0.357142857142859,0.318974071359386,0.313687695418680,0.252440345559413,
-      0.285592536833666,0.142427384298759,1.83808694709871,4.99976166848110,-4.40368429576609,
-      -4.15265369945035,-5.71704546657942,-5.91719609550041,-2.69702692883125,-0.0549088748153923,
-      0.708526204688798,0.415913233131340,0.629062292587157,-0.116845519892161,1.18749825681979,
-      0.0,0.0};
+      0.357142857142859, 0.357142857142859, 0.318974071359386, 0.313687695418680, 0.252440345559413,
+      0.285592536833666, 0.142427384298759, 1.83808694709871, 4.99976166848110, -4.40368429576609,
+      -4.15265369945035, -5.71704546657942, -5.91719609550041, -2.69702692883125, -0.0549088748153923,
+      0.708526204688798, 0.415913233131340, 0.629062292587157, -0.116845519892161, 1.18749825681979,
+      0.0, 0.0};
   float knee_pos[23] = {
       1.34883464940023, 1.34883464940023, 1.34883464940023, 1.34092511661378, 1.32475585330151,
       1.30279731457381, 1.27890634121836, 1.22139644000072, 1.35307177158772, 1.64642431633239,
@@ -163,10 +164,10 @@ struct cp_3
       1.22139644000072, 1.27890634121837, 1.30279731457380, 1.32475585330152, 1.34092511661378,
       1.34883464940023, 1.34883464940023, 1.34883464940023};
   float knee_vel[22] = {
-      0.0, 0.0, -0.0659127732204186, -0.101057895701677, -0.130705587664862, 
-      -0.175668921731310,-0.552979819400347, 1.82882404981945, 7.33381361861677, 1.40575705059255, 
-      1.48139739813791,-1.48139739813790, -1.40575705059256, -7.33381361861673, -1.82882404981952,
-      0.552979819400512,0.175668921731126, 0.130705587664976, 0.101057895701627, 0.0659127732204242,
+      0.0, 0.0, -0.0659127732204186, -0.101057895701677, -0.130705587664862,
+      -0.175668921731310, -0.552979819400347, 1.82882404981945, 7.33381361861677, 1.40575705059255,
+      1.48139739813791, -1.48139739813790, -1.40575705059256, -7.33381361861673, -1.82882404981952,
+      0.552979819400512, 0.175668921731126, 0.130705587664976, 0.101057895701627, 0.0659127732204242,
       0.0, 0.0};
   float time[19] = {
       0.0, 0.20, 0.40, 0.60, 0.80, 0.84, 0.88, 0.92, 0.96, 1.0,
@@ -184,17 +185,17 @@ struct cp_4
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 0.0};
   float hip_pos[23] = {
-      0.695828411290931,0.695828411290931,0.695828411290931,0.830217149133155,0.793868889441632,
-      0.878370353759150,0.907739317347801,0.923292205869897,1.05554224457705,1.25555507335310,
-      1.07939745432591,0.913297151794821,0.684609487684719,0.447931891061254,0.340028451871195,
-      0.336167234368439,0.409113519101050,0.475149340227638,0.538740319118746,0.606583326894510,
-      0.652971268433788,0.681542697005217,0.695828411290931};
+      0.695828411290931, 0.695828411290931, 0.695828411290931, 0.830217149133155, 0.793868889441632,
+      0.878370353759150, 0.907739317347801, 0.923292205869897, 1.05554224457705, 1.25555507335310,
+      1.07939745432591, 0.913297151794821, 0.684609487684719, 0.447931891061254, 0.340028451871195,
+      0.336167234368439, 0.409113519101050, 0.475149340227638, 0.538740319118746, 0.606583326894510,
+      0.652971268433788, 0.681542697005217, 0.695828411290931};
   float hip_vel[22] = {
-      0.0,0.0,1.11990614868520,-0.227176623072016,0.502984906651893,
-      0.215948261681255,0.149547005020152,1.83680609315493,5.00032071940132,-4.40394047567987,
-      -4.15250756327723,-5.71719160275253,-5.91693991558662,-2.69758597975148,-0.0536280208716162,
-      0.701406583967413,0.485557508283740,0.378517731494685,0.424018798598527,0.386566179493987,
-      0.357142857142856,0.357142857142856};
+      0.0, 0.0, 1.11990614868520, -0.227176623072016, 0.502984906651893,
+      0.215948261681255, 0.149547005020152, 1.83680609315493, 5.00032071940132, -4.40394047567987,
+      -4.15250756327723, -5.71719160275253, -5.91693991558662, -2.69758597975148, -0.0536280208716162,
+      0.701406583967413, 0.485557508283740, 0.378517731494685, 0.424018798598527, 0.386566179493987,
+      0.357142857142856, 0.357142857142856};
   float knee_pos[23] = {
       1.34883464940023, 1.34883464940023, 1.34883464940023, 1.34092511661378, 1.32475585330151,
       1.30279731457381, 1.27890634121836, 1.22139644000072, 1.35307177158772, 1.64642431633239,
@@ -202,10 +203,10 @@ struct cp_4
       1.22139644000072, 1.27890634121837, 1.30279731457380, 1.32475585330152, 1.34092511661378,
       1.34883464940023, 1.34883464940023, 1.34883464940023};
   float knee_vel[22] = {
-      0.0, 0.0, -0.0659127732204186, -0.101057895701677, -0.130705587664862, 
-      -0.175668921731310,-0.552979819400347, 1.82882404981945, 7.33381361861677, 1.40575705059255, 
-      1.48139739813791,-1.48139739813790, -1.40575705059256, -7.33381361861673, -1.82882404981952,
-      0.552979819400512,0.175668921731126, 0.130705587664976, 0.101057895701627, 0.0659127732204242,
+      0.0, 0.0, -0.0659127732204186, -0.101057895701677, -0.130705587664862,
+      -0.175668921731310, -0.552979819400347, 1.82882404981945, 7.33381361861677, 1.40575705059255,
+      1.48139739813791, -1.48139739813790, -1.40575705059256, -7.33381361861673, -1.82882404981952,
+      0.552979819400512, 0.175668921731126, 0.130705587664976, 0.101057895701627, 0.0659127732204242,
       0.0, 0.0};
   float time[19] = {
       0.0, 0.20, 0.40, 0.60, 0.80, 0.84, 0.88, 0.92, 0.96, 1.0,
@@ -257,6 +258,40 @@ bSpline *trajPtr_knee_vel;
 char loop_state = 'z';
 
 unsigned long timerrr;
+
+float pos3_ab = 0.0;
+float pos3_hip = 0.0;
+float pos3_knee = 0.0;
+
+float pos4_ab = 0.0;
+float pos4_hip = 0.0;
+float pos4_knee = 0.0;
+
+float pos5_ab_FL = 0.0;
+float pos5_hip_FL = 0.0;
+float pos5_knee_FL = 0.0;
+float pos5_ab_FR = 0.0;
+float pos5_hip_FR = 0.0;
+float pos5_knee_FR = 0.0;
+float pos5_ab_bL = 0.0;
+float pos5_hip_bL = 0.0;
+float pos5_knee_bL = 0.0;
+float pos5_ab_bR = 0.0;
+float pos5_hip_bR = 0.0;
+float pos5_knee_bR = 0.0;
+
+float pos6_ab_FL = 0.0;
+float pos6_hip_FL = 0.0;
+float pos6_knee_FL = 0.0;
+float pos6_ab_FR = 0.0;
+float pos6_hip_FR = 0.0;
+float pos6_knee_FR = 0.0;
+float pos6_ab_bL = 0.0;
+float pos6_hip_bL = 0.0;
+float pos6_knee_bL = 0.0;
+float pos6_ab_bR = 0.0;
+float pos6_hip_bR = 0.0;
+float pos6_knee_bR = 0.0;
 
 /**
  * Connect ODrive
@@ -605,24 +640,24 @@ void send(jointPositions *joint_ptr, ODriveArduino *front_AB_ptr, ODriveArduino 
  */
 String readString()
 {
-    String str = "";
-    static const unsigned long timeout = 1000;
-    unsigned long timeout_start = millis();
-    for (;;)
+  String str = "";
+  static const unsigned long timeout = 1000;
+  unsigned long timeout_start = millis();
+  for (;;)
+  {
+    while (!Serial.available())
     {
-        while (!Serial.available())
-        {
-            if (millis() - timeout_start >= timeout)
-            {
-                return str;
-            }
-        }
-        char c = Serial.read();
-        if (c == '\n')
-            break;
-        str += c;
+      if (millis() - timeout_start >= timeout)
+      {
+        return str;
+      }
     }
-    return str;
+    char c = Serial.read();
+    if (c == '\n')
+      break;
+    str += c;
+  }
+  return str;
 }
 
 /**
@@ -741,7 +776,6 @@ void disarmJoints()
   back_HIP.disarmAxis();
   back_KNEE.disarmAxis();
 #endif
-  Serial.println("test");
 }
 
 /**
@@ -827,31 +861,353 @@ void calibJoints()
    * 2. 2xPOS_CONVERSION_TIME has elapsed
    * The process will be interrupted if input is detected from computer
    */
+// void moveToPos_STDBY_blocking()
+// {
+//   armJoints();
+//   timer.reset();
+//   // unsigned long int stdby_timer = millis();
+//   // while (!joint.checkPos(STANDBY_POS_FLAG, front_AB_ptr, front_HIP_ptr, front_KNEE_ptr, back_AB_ptr, back_HIP_ptr, back_KNEE_ptr) && millis() - stdby_timer < 2 * POS_CONVERSION_TIME * 1000)
+//   // {
+//   //   unsigned long int standby_pos_start_time = millis();
+//   //   float elapsedSec = (millis() - standby_pos_start_time) / 1000.0;
+//   //   while (elapsedSec < POS_CONVERSION_TIME)
+//   //   {
+//   //     if (Serial.available() > 0)
+//   //     {
+//   //       Serial.println("stopping pos conversion!");
+//   //       disarmJoints();
+//   //       break;
+//   //     }
+//   //     joint.update_constantPos(elapsedSec);
+//   //     // Serial.println(elapsedSec);
+//   //     if (timer.check())
+//   //     {
+//   //       send(joint_ptr, front_AB_ptr, front_HIP_ptr, front_KNEE_ptr, back_AB_ptr, back_HIP_ptr, back_KNEE_ptr);
+//   //     }
+//   //     elapsedSec = (millis() - standby_pos_start_time) / 1000.0;
+//   //   }
+//   // }
+//   unsigned long timerrr = millis();
+//   while(millis()-timerrr < 5*1000)
+//   {
+//     #ifdef ENABLE_FRONT_LEFT
+//     front_AB.moveTo_constVelo(LEFT, -AB_STANDBY_POS_DEG, 5.0);
+//     front_HIP.moveTo_constVelo(LEFT, -HIP_STANDBY_POS_DEG, 5.0);
+//     front_KNEE.moveTo_constVelo(LEFT, -KNEE_STANDBY_POS_DEG, 5.0);
+//     #endif
+//     #ifdef ENABLE_FRONT_RIGHT
+//     front_AB.moveTo_constVelo(RIGHT, AB_STANDBY_POS_DEG, 5.0);
+//     front_HIP.moveTo_constVelo(RIGHT, HIP_STANDBY_POS_DEG, 5.0);
+//     front_KNEE.moveTo_constVelo(RIGHT, KNEE_STANDBY_POS_DEG, 5.0);
+//     #endif
+//     #ifdef ENABLE_BACK_LEFT
+//     back_AB.moveTo_constVelo(LEFT, AB_STANDBY_POS_DEG, 5.0);
+//     back_HIP.moveTo_constVelo(LEFT, -HIP_STANDBY_POS_DEG, 5.0);
+//     back_KNEE.moveTo_constVelo(LEFT, -KNEE_STANDBY_POS_DEG, 5.0);
+//     #endif
+//     #ifdef ENABLE_BACK_RIGHT
+//     back_AB.moveTo_constVelo(RIGHT, -AB_STANDBY_POS_DEG, 5.0);
+//     back_HIP.moveTo_constVelo(RIGHT, HIP_STANDBY_POS_DEG, 5.0);
+//     back_KNEE.moveTo_constVelo(RIGHT, KNEE_STANDBY_POS_DEG, 5.0);
+//     #endif
+//   }
+// }
+
 void moveToPos_STDBY_blocking()
 {
   armJoints();
+#ifdef ENABLE_FRONT_LEFT
+  front_AB.update_target(LEFT, true, 5000000, -AB_STANDBY_POS_DEG);
+  front_HIP.update_target(LEFT, true, 5000000, -HIP_STANDBY_POS_DEG);
+  front_KNEE.update_target(LEFT, true, 5000000, -KNEE_STANDBY_POS_DEG);
+#endif
+#ifdef ENABLE_FRONT_RIGHT
+  front_AB.update_target(RIGHT, true, 5000000, AB_STANDBY_POS_DEG);
+  front_HIP.update_target(RIGHT, true, 5000000, HIP_STANDBY_POS_DEG);
+  front_KNEE.update_target(RIGHT, true, 5000000, KNEE_STANDBY_POS_DEG);
+#endif
+#ifdef ENABLE_BACK_LEFT
+  back_AB.update_target(LEFT, true, 5000000, AB_STANDBY_POS_DEG);
+  back_HIP.update_target(LEFT, true, 5000000, -HIP_STANDBY_POS_DEG);
+  back_KNEE.update_target(LEFT, true, 5000000, -KNEE_STANDBY_POS_DEG);
+#endif
+#ifdef ENABLE_BACK_RIGHT
+  back_AB.update_target(RIGHT, true, 5000000, -AB_STANDBY_POS_DEG);
+  back_HIP.update_target(RIGHT, true, 5000000, HIP_STANDBY_POS_DEG);
+  back_KNEE.update_target(RIGHT, true, 5000000, KNEE_STANDBY_POS_DEG);
+#endif
   timer.reset();
-  unsigned long int stdby_timer = millis();
-  while (!joint.checkPos(STANDBY_POS_FLAG, front_AB_ptr, front_HIP_ptr, front_KNEE_ptr, back_AB_ptr, back_HIP_ptr, back_KNEE_ptr) && millis() - stdby_timer < 2 * POS_CONVERSION_TIME * 1000)
+  int stdbytimer = millis();
+  while (millis() - stdbytimer <= 5000)
   {
-    unsigned long int standby_pos_start_time = millis();
-    float elapsedSec = (millis() - standby_pos_start_time) / 1000.0;
-    while (elapsedSec < POS_CONVERSION_TIME)
+    if (timer.check())
     {
-      if (Serial.available() > 0)
-      {
-        Serial.println("stopping pos conversion!");
-        disarmJoints();
-        break;
-      }
-      joint.update_constantPos(elapsedSec);
-      // Serial.println(elapsedSec);
-      if (timer.check())
-      {
-        send(joint_ptr, front_AB_ptr, front_HIP_ptr, front_KNEE_ptr, back_AB_ptr, back_HIP_ptr, back_KNEE_ptr);
-      }
-      elapsedSec = (millis() - standby_pos_start_time) / 1000.0;
+#ifdef ENABLE_FRONT_LEFT
+      front_AB.update(LEFT);
+      front_HIP.update(LEFT);
+      front_KNEE.update(LEFT);
+#endif
+#ifdef ENABLE_FRONT_RIGHT
+      front_AB.update(RIGHT);
+      front_HIP.update(RIGHT);
+      front_KNEE.update(RIGHT);
+#endif
+#ifdef ENABLE_BACK_LEFT
+      back_AB.update(LEFT);
+      back_HIP.update(LEFT);
+      back_KNEE.update(LEFT);
+#endif
+#ifdef ENABLE_BACK_RIGHT
+      back_AB.update(RIGHT);
+      back_HIP.update(RIGHT);
+      back_KNEE.update(RIGHT);
+#endif
     }
+  }
+}
+
+void manualInput_pos(int choice)
+{
+  String input;
+  if (choice == 3)
+  {
+    Serial.println("P3");
+    Serial.println("Enter ab pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("ab = ");
+    Serial.println(input);
+    pos3_ab = input.toInt();
+
+    Serial.println("Enter hip pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("hip = ");
+    Serial.println(input);
+    pos3_hip = input.toInt();
+    
+    Serial.println("Enter knee pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("knee = ");
+    Serial.println(input);
+    pos3_knee = input.toInt();
+  }
+  if (choice == 4)
+  {
+    Serial.println("P4");
+    Serial.println("Enter ab pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("ab = ");
+    Serial.println(input);
+    pos4_ab = input.toInt();
+
+    Serial.println("Enter hip pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("hip = ");
+    Serial.println(input);
+    pos4_hip = input.toInt();
+    
+    Serial.println("Enter knee pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("knee = ");
+    Serial.println(input);
+    pos4_knee = input.toInt();
+  }
+  if (choice == 5)
+  {
+    Serial.println("P5 FL");
+    Serial.println("Enter FL ab pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("ab = ");
+    Serial.println(input);
+    pos5_ab_FL = input.toFloat();
+
+    Serial.println("Enter FL hip pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("hip = ");
+    Serial.println(input);
+    pos5_hip_FL = input.toFloat();
+    
+    Serial.println("Enter FL knee pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("knee = ");
+    Serial.println(input);
+    pos5_knee_FL = input.toFloat();
+    
+
+
+    Serial.println("P5 FR");
+    Serial.println("Enter FR ab pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("ab = ");
+    Serial.println(input);
+    pos5_ab_FR = input.toFloat();
+
+    Serial.println("Enter FR hip pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("hip = ");
+    Serial.println(input);
+    pos5_hip_FR = input.toFloat();
+    
+    Serial.println("Enter FR knee pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("knee = ");
+    Serial.println(input);
+    pos5_knee_FR = input.toFloat();
+    
+
+
+    Serial.println("P5 BL");
+    Serial.println("Enter BL ab pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("ab = ");
+    Serial.println(input);
+    pos5_ab_bL = input.toFloat();
+
+    Serial.println("Enter BL hip pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("hip = ");
+    Serial.println(input);
+    pos5_hip_bL = input.toFloat();
+    
+    Serial.println("Enter BL knee pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("knee = ");
+    Serial.println(input);
+    pos5_knee_bL = input.toFloat();
+    
+
+
+    Serial.println("P5 BR");
+    Serial.println("Enter BR ab pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("ab = ");
+    Serial.println(input);
+    pos5_ab_bR = input.toFloat();
+
+    Serial.println("Enter BR hip pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("hip = ");
+    Serial.println(input);
+    pos5_hip_bR = input.toFloat();
+    
+    Serial.println("Enter BR knee pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("knee = ");
+    Serial.println(input);
+    pos5_knee_bR = input.toFloat();
+  }
+  if (choice == 6)
+  {
+    Serial.println("P6 FL");
+    Serial.println("Enter FL ab pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("ab = ");
+    Serial.println(input);
+    pos6_ab_FL = input.toFloat();
+
+    Serial.println("Enter FL hip pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("hip = ");
+    Serial.println(input);
+    pos6_hip_FL = input.toFloat();
+    
+    Serial.println("Enter FL knee pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("knee = ");
+    Serial.println(input);
+    pos6_knee_FL = input.toFloat();
+    
+
+
+    Serial.println("P5 FR");
+    Serial.println("Enter FR ab pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("ab = ");
+    Serial.println(input);
+    pos6_ab_FR = input.toFloat();
+
+    Serial.println("Enter FR hip pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("hip = ");
+    Serial.println(input);
+    pos6_hip_FR = input.toFloat();
+    
+    Serial.println("Enter FR knee pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("knee = ");
+    Serial.println(input);
+    pos6_knee_FR = input.toFloat();
+    
+
+
+    Serial.println("P5 BL");
+    Serial.println("Enter BL ab pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("ab = ");
+    Serial.println(input);
+    pos6_ab_bL = input.toFloat();
+
+    Serial.println("Enter BL hip pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("hip = ");
+    Serial.println(input);
+    pos6_hip_bL = input.toFloat();
+    
+    Serial.println("Enter BL knee pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("knee = ");
+    Serial.println(input);
+    pos6_knee_bL = input.toFloat();
+    
+
+
+    Serial.println("P5 BR");
+    Serial.println("Enter BR ab pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("ab = ");
+    Serial.println(input);
+    pos6_ab_bR = input.toFloat();
+
+    Serial.println("Enter BR hip pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("hip = ");
+    Serial.println(input);
+    pos6_hip_bR = input.toFloat();
+    
+    Serial.println("Enter BR knee pos");
+    while (Serial.available()==0);
+    input = readString();
+    Serial.print("knee = ");
+    Serial.println(input);
+    pos6_knee_bR = input.toFloat();
   }
 }
 
@@ -869,6 +1225,15 @@ void config_sequence()
     Serial.println("Enter deg to view joint positions");
     Serial.println("Enter test to test time for bspline calculation");
     Serial.println("Enter manual to enter manual command mode");
+    Serial.println("Enter 1 to disarm front left leg");
+    Serial.println("Enter 2 to disarm front right leg");
+    Serial.println("Enter 3 to disarm back left leg");
+    Serial.println("Enter 4 to disarm back right leg");
+    Serial.println("Enter c3 to manually enter pos3");
+    Serial.println("Enter c4 to manually enter pos4");
+    Serial.println("Enter c5 to manually enter pos5");
+    Serial.println("Enter c6 to manually enter pos6");
+    Serial.println("Enter check to display all pos deg");
     Serial.println("-----------------------------------------");
     Serial.println("Enter exit to exit the config routine");
     Serial.println("=========================================");
@@ -888,11 +1253,6 @@ void config_sequence()
     {
       readJointPosition();
     }
-    // else if (serial_input == "test")
-    // {
-    //   float time_point = 0.1;
-    //   Serial.println(traj_1_ab_pos.get_point(&time_point));
-    // }
     else if (serial_input == "manual")
     {
       bool exit_flag = false;
@@ -913,6 +1273,170 @@ void config_sequence()
     {
       find_joint_neutral_position();
     }
+    else if (serial_input == "1")
+    {
+      front_AB.disarmAxis(LEFT);
+      front_HIP.disarmAxis(LEFT);
+      front_KNEE.disarmAxis(LEFT);
+    }
+    else if (serial_input == "2")
+    {
+      front_AB.disarmAxis(RIGHT);
+      front_HIP.disarmAxis(RIGHT);
+      front_KNEE.disarmAxis(RIGHT);
+    }
+    else if (serial_input == "3")
+    {
+      back_AB.disarmAxis(LEFT);
+      back_HIP.disarmAxis(LEFT);
+      back_KNEE.disarmAxis(LEFT);
+    }
+    else if (serial_input == "4")
+    {
+      back_AB.disarmAxis(RIGHT);
+      back_HIP.disarmAxis(RIGHT);
+      back_KNEE.disarmAxis(RIGHT);
+    }
+    else if (serial_input == "c3")
+    {
+      manualInput_pos(3);
+    }
+    else if (serial_input == "c4")
+    {
+      manualInput_pos(4);
+    }
+    else if (serial_input == "c5")
+    {
+      manualInput_pos(5);
+    }
+    else if (serial_input == "c6")
+    {
+      manualInput_pos(6);
+    }
+    else if (serial_input == "check")
+    {
+      Serial.println("pos1");
+      Serial.print(AB_POS_1);
+      Serial.print(' ');
+      Serial.print(HIP_POS_1);
+      Serial.print(' ');
+      Serial.println(KNEE_POS_1);
+
+      Serial.println("pos2");
+      Serial.print(AB_POS_2);
+      Serial.print(' ');
+      Serial.print(HIP_POS_2);
+      Serial.print(' ');
+      Serial.println(KNEE_POS_2);
+
+      Serial.println("pos3");
+      Serial.print(pos3_ab);
+      Serial.print(' ');
+      Serial.print(pos3_hip);
+      Serial.print(' ');
+      Serial.println(pos3_knee);
+
+      Serial.println("pos4");
+      Serial.print(pos4_ab);
+      Serial.print(' ');
+      Serial.print(pos4_hip);
+      Serial.print(' ');
+      Serial.println(pos4_knee);
+      
+      Serial.println("pos5");
+      Serial.print("FL ");
+      Serial.print(pos5_ab_FL);
+      Serial.print(' ');
+      Serial.print(pos5_hip_FL);
+      Serial.print(' ');
+      Serial.println(pos5_knee_FL);
+      Serial.print("FR ");
+      Serial.print(pos5_ab_FR);
+      Serial.print(' ');
+      Serial.print(pos5_hip_FR);
+      Serial.print(' ');
+      Serial.println(pos5_knee_FR);
+      Serial.print("BL ");
+      Serial.print(pos5_ab_bL);
+      Serial.print(' ');
+      Serial.print(pos5_hip_bL);
+      Serial.print(' ');
+      Serial.println(pos5_knee_bL);
+      Serial.print("BR ");
+      Serial.print(pos5_ab_bR);
+      Serial.print(' ');
+      Serial.print(pos5_hip_bR);
+      Serial.print(' ');
+      Serial.println(pos5_knee_bR);
+            
+      Serial.println("pos6");
+      Serial.print("FL ");
+      Serial.print(pos6_ab_FL);
+      Serial.print(' ');
+      Serial.print(pos6_hip_FL);
+      Serial.print(' ');
+      Serial.println(pos6_knee_FL);
+      Serial.print("FR ");
+      Serial.print(pos6_ab_FR);
+      Serial.print(' ');
+      Serial.print(pos6_hip_FR);
+      Serial.print(' ');
+      Serial.println(pos6_knee_FR);
+      Serial.print("BL ");
+      Serial.print(pos6_ab_bL);
+      Serial.print(' ');
+      Serial.print(pos6_hip_bL);
+      Serial.print(' ');
+      Serial.println(pos6_knee_bL);
+      Serial.print("BR ");
+      Serial.print(pos6_ab_bR);
+      Serial.print(' ');
+      Serial.print(pos6_hip_bR);
+      Serial.print(' ');
+      Serial.println(pos6_knee_bR);
+    }
+    else if (serial_input == "trig")
+    {
+      float t1;
+      float t2;
+      float t3;
+      Serial.println(micros());
+      leg_inverseKinematics(0,0,0,0.4,0.142,0.05,t1,t2,t3,FRONT_LEFT_LEG);
+      Serial.print(t1/PI_math*180);
+      Serial.print(' ');
+      Serial.print(t2/PI_math*180);
+      Serial.print(' ');
+      Serial.println(t3/PI_math*180);
+
+      Serial.println(micros());
+      Serial.println(micros());
+      leg_inverseKinematics(0,0,0,0.4,0.142,0.05,t1,t2,t3,FRONT_RIGHT_LEG);
+      Serial.print(t1/PI_math*180);
+      Serial.print(' ');
+      Serial.print(t2/PI_math*180);
+      Serial.print(' ');
+      Serial.println(t3/PI_math*180);
+
+      Serial.println(micros());
+      Serial.println(micros());
+      leg_inverseKinematics(0,0,0,0.4,0.142,0.05,t1,t2,t3,BACK_LEFT_LEG);
+      Serial.print(t1/PI_math*180);
+      Serial.print(' ');
+      Serial.print(t2/PI_math*180);
+      Serial.print(' ');
+      Serial.println(t3/PI_math*180);
+
+      Serial.println(micros());
+      Serial.println(micros());
+      leg_inverseKinematics(0,0,0,0.4,0.142,0.05,t1,t2,t3,BACK_RIGHT_LEG);
+      Serial.print(t1/PI_math*180);
+      Serial.print(' ');
+      Serial.print(t2/PI_math*180);
+      Serial.print(' ');
+      Serial.println(t3/PI_math*180);
+
+      Serial.println(micros());
+    }
     else if (serial_input == "exit")
     {
       break;
@@ -928,14 +1452,14 @@ void setup()
     ;
   Serial.println("Computer Serial connected");
 #ifdef ENABLE_FRONT
-  // odrv_connect(front_AB);
-  // odrv_connect(front_HIP);
-  // odrv_connect(front_KNEE);
+  odrv_connect(front_AB);
+  odrv_connect(front_HIP);
+  odrv_connect(front_KNEE);
 #endif
 #ifdef ENABLE_BACK
-  // odrv_connect(back_AB);
-  // odrv_connect(back_HIP);
-  // odrv_connect(back_KNEE);
+  odrv_connect(back_AB);
+  odrv_connect(back_HIP);
+  odrv_connect(back_KNEE);
 #endif
   // radio.calibration();
   config_sequence();
@@ -972,23 +1496,185 @@ void loop()
     disarmJoints();
     loop_state = STATE_IDLE;
   }
-  else if (serial_input == "config" && loop_state == STATE_IDLE)
+  else if (serial_input == "config")
   {
-    config_sequence();
     loop_state = STATE_IDLE;
+    config_sequence();
   }
-
+  // else if (serial_input == "pos1" && loop_state == STATE_IDLE)
+  // {
+  //   loop_state = STATE_POS_1;
+  //   timerrr = millis();
+  // }
+  // else if (serial_input == "pos2" && loop_state == STATE_IDLE)
+  // {
+  //   loop_state = STATE_POS_2;
+  //   front_AB.update_target(LEFT, 5000000, -AB_POS_2);
+  //   timerrr = millis();
+  // }
+  else if (serial_input == "pos1")
+  {
+    loop_state = STATE_test;
+#ifdef ENABLE_FRONT_LEFT
+    front_AB.update_target(LEFT, true, 5000000, -AB_POS_1);
+    front_HIP.update_target(LEFT, true, 5000000, -HIP_POS_1);
+    front_KNEE.update_target(LEFT, true, 5000000, -KNEE_POS_1);
+#endif
+#ifdef ENABLE_FRONT_RIGHT
+    front_AB.update_target(RIGHT, true, 5000000, AB_POS_2);
+    front_HIP.update_target(RIGHT, true, 5000000, HIP_POS_2);
+    front_KNEE.update_target(RIGHT, true, 5000000, KNEE_POS_2);
+#endif
+#ifdef ENABLE_BACK_LEFT
+    back_AB.update_target(LEFT, true, 5000000, AB_POS_1);
+    back_HIP.update_target(LEFT, true, 5000000, -HIP_POS_1);
+    back_KNEE.update_target(LEFT, true, 5000000, -KNEE_POS_1);
+#endif
+#ifdef ENABLE_BACK_RIGHT
+    back_AB.update_target(RIGHT, true, 5000000, -AB_POS_2);
+    back_HIP.update_target(RIGHT, true, 5000000, HIP_POS_2);
+    back_KNEE.update_target(RIGHT, true, 5000000, KNEE_POS_2);
+#endif
+Serial.println("POS1");
+    timer.reset();
+  }
+  else if (serial_input == "pos2")
+  {
+    loop_state = STATE_test;
+#ifdef ENABLE_FRONT_LEFT
+    front_AB.update_target(LEFT, true, 5000000, -AB_POS_2);
+    front_HIP.update_target(LEFT, true, 5000000, -HIP_POS_2);
+    front_KNEE.update_target(LEFT, true, 5000000, -KNEE_POS_2);
+#endif
+#ifdef ENABLE_FRONT_RIGHT
+    front_AB.update_target(RIGHT, true, 5000000, AB_POS_1);
+    front_HIP.update_target(RIGHT, true, 5000000, HIP_POS_1);
+    front_KNEE.update_target(RIGHT, true, 5000000, KNEE_POS_1);
+#endif
+#ifdef ENABLE_BACK_LEFT
+    back_AB.update_target(LEFT, true, 5000000, AB_POS_2);
+    back_HIP.update_target(LEFT, true, 5000000, -HIP_POS_2);
+    back_KNEE.update_target(LEFT, true, 5000000, -KNEE_POS_2);
+#endif
+#ifdef ENABLE_BACK_RIGHT
+    back_AB.update_target(RIGHT, true, 5000000, -AB_POS_1);
+    back_HIP.update_target(RIGHT, true, 5000000, HIP_POS_1);
+    back_KNEE.update_target(RIGHT, true, 5000000, KNEE_POS_1);
+#endif
+Serial.println("POS2");
+    timer.reset();
+  }
+  else if (serial_input == "pos3")
+  {
+    loop_state = STATE_test;
+#ifdef ENABLE_FRONT_LEFT
+    front_AB.update_target(LEFT, true, 5000000, -pos3_ab);
+    front_HIP.update_target(LEFT, true, 5000000, -pos3_hip);
+    front_KNEE.update_target(LEFT, true, 5000000, -pos3_knee);
+#endif
+#ifdef ENABLE_FRONT_RIGHT
+    front_AB.update_target(RIGHT, true, 5000000, pos4_ab);
+    front_HIP.update_target(RIGHT, true, 5000000, pos4_hip);
+    front_KNEE.update_target(RIGHT, true, 5000000, pos4_knee);
+#endif
+#ifdef ENABLE_BACK_LEFT
+    back_AB.update_target(LEFT, true, 5000000, pos3_ab);
+    back_HIP.update_target(LEFT, true, 5000000, -pos3_hip);
+    back_KNEE.update_target(LEFT, true, 5000000, -pos3_knee);
+#endif
+#ifdef ENABLE_BACK_RIGHT
+    back_AB.update_target(RIGHT, true, 5000000, -pos4_ab);
+    back_HIP.update_target(RIGHT, true, 5000000, pos4_hip);
+    back_KNEE.update_target(RIGHT, true, 5000000, pos4_knee);
+#endif
+    timer.reset();
+  }
+  else if (serial_input == "pos4")
+  {
+    loop_state = STATE_test;
+#ifdef ENABLE_FRONT_LEFT
+    front_AB.update_target(LEFT, true, 5000000, -pos4_ab);
+    front_HIP.update_target(LEFT, true, 5000000, -pos4_hip);
+    front_KNEE.update_target(LEFT, true, 5000000, -pos4_knee);
+#endif
+#ifdef ENABLE_FRONT_RIGHT
+    front_AB.update_target(RIGHT, true, 5000000, pos3_ab);
+    front_HIP.update_target(RIGHT, true, 5000000, pos3_hip);
+    front_KNEE.update_target(RIGHT, true, 5000000, pos3_knee);
+#endif
+#ifdef ENABLE_BACK_LEFT
+    back_AB.update_target(LEFT, true, 5000000, pos4_ab);
+    back_HIP.update_target(LEFT, true, 5000000, -pos4_hip);
+    back_KNEE.update_target(LEFT, true, 5000000, -pos4_knee);
+#endif
+#ifdef ENABLE_BACK_RIGHT
+    back_AB.update_target(RIGHT, true, 5000000, -pos3_ab);
+    back_HIP.update_target(RIGHT, true, 5000000, pos3_hip);
+    back_KNEE.update_target(RIGHT, true, 5000000, pos3_knee);
+#endif
+    timer.reset();
+  }
+  else if (serial_input == "pos5")
+  {
+    loop_state = STATE_test;
+#ifdef ENABLE_FRONT_LEFT
+    front_AB.update_target(LEFT, true, 5000000, -pos5_ab_FL);
+    front_HIP.update_target(LEFT, true, 5000000, -pos5_hip_FL);
+    front_KNEE.update_target(LEFT, true, 5000000, -pos5_knee_FL);
+#endif
+#ifdef ENABLE_FRONT_RIGHT
+    front_AB.update_target(RIGHT, true, 5000000, pos5_ab_FR);
+    front_HIP.update_target(RIGHT, true, 5000000, pos5_hip_FR);
+    front_KNEE.update_target(RIGHT, true, 5000000, pos5_knee_FR);
+#endif
+#ifdef ENABLE_BACK_LEFT
+    back_AB.update_target(LEFT, true, 5000000, pos5_ab_bL);
+    back_HIP.update_target(LEFT, true, 5000000, -pos5_hip_bL);
+    back_KNEE.update_target(LEFT, true, 5000000, -pos5_knee_bL);
+#endif
+#ifdef ENABLE_BACK_RIGHT
+    back_AB.update_target(RIGHT, true, 5000000, -pos5_ab_bR);
+    back_HIP.update_target(RIGHT, true, 5000000, pos5_hip_bR);
+    back_KNEE.update_target(RIGHT, true, 5000000, pos5_knee_bR);
+#endif
+    timer.reset();
+  }
+  else if (serial_input == "pos6")
+  {
+    loop_state = STATE_test;
+#ifdef ENABLE_FRONT_LEFT
+    front_AB.update_target(LEFT, true, 5000000, -pos6_ab_FL);
+    front_HIP.update_target(LEFT, true, 5000000, -pos6_hip_FL);
+    front_KNEE.update_target(LEFT, true, 5000000, -pos6_knee_FL);
+#endif
+#ifdef ENABLE_FRONT_RIGHT
+    front_AB.update_target(RIGHT, true, 5000000, pos6_ab_FR);
+    front_HIP.update_target(RIGHT, true, 5000000, pos6_hip_FR);
+    front_KNEE.update_target(RIGHT, true, 5000000, pos6_knee_FR);
+#endif
+#ifdef ENABLE_BACK_LEFT
+    back_AB.update_target(LEFT, true, 5000000, pos6_ab_bL);
+    back_HIP.update_target(LEFT, true, 5000000, -pos6_hip_bL);
+    back_KNEE.update_target(LEFT, true, 5000000, -pos6_knee_bL);
+#endif
+#ifdef ENABLE_BACK_RIGHT
+    back_AB.update_target(RIGHT, true, 5000000, -pos6_ab_bR);
+    back_HIP.update_target(RIGHT, true, 5000000, pos6_hip_bR);
+    back_KNEE.update_target(RIGHT, true, 5000000, pos6_knee_bR);
+#endif
+    timer.reset();
+  }
   // state machine
   switch (loop_state)
   {
   case STATE_1_STEP:
     if (timer.check())
     {
-      Serial.print(micros()-timerrr);
+      Serial.print(micros() - timerrr);
       joint.update_bsplineTraj(&traj_1step_forward_ab_pos, &traj_1step_forward_ab_vel, &traj_1step_forward_hip_pos, &traj_1step_forward_hip_vel,
                                &traj_1step_forward_knee_pos, &traj_1step_forward_knee_vel, &time_fL, &time_fR, &time_bL, &time_bR,
                                &flag_fL_end, &flag_fR_end, &flag_bL_end, &flag_bR_end);
-      
+
       Serial.print(" | ");
       Serial.print(time_fL, 4);
       Serial.print(" | ");
@@ -1053,7 +1739,7 @@ void loop()
       // update time stamps until the cycle end flag is set to true
       if (flag_end_cycle == false)
       {
-        update_time(2.0,0.8,CRAWL_GAIT,GAIT_ONESTEP);
+        update_time(2.0, 0.8, CRAWL_GAIT, GAIT_ONESTEP);
       }
       // cycle end flag is set to true. gait cycle has completed.
       // set state machine back to idle
@@ -1075,7 +1761,7 @@ void loop()
       {
         // requested_gait_state = GAIT_STARTING;
         // // set the bspline pointers to the starting phase bsplines
-        
+
         trajPtr_ab_pos = &traj_start_forward_ab_pos;
         trajPtr_ab_vel = &traj_start_forward_ab_vel;
         trajPtr_hip_pos = &traj_start_forward_hip_pos;
@@ -1141,7 +1827,7 @@ void loop()
         loop_state = STATE_IDLE;
         Serial.println("end cycle completed");
       }
-      Serial.print(micros()-timerrr);
+      Serial.print(micros() - timerrr);
       joint.update_bsplineTraj(trajPtr_ab_pos, trajPtr_ab_vel, trajPtr_hip_pos, trajPtr_hip_vel,
                                trajPtr_knee_pos, trajPtr_knee_vel, &time_fL, &time_fR, &time_bL, &time_bR,
                                &flag_fL_end, &flag_fR_end, &flag_bL_end, &flag_bR_end);
@@ -1207,7 +1893,57 @@ void loop()
       Serial.print(joint_ptr->joint_vel_target_deg.bL_knee_velo);
       Serial.print(' ');
       Serial.println(micros() - timerrr);
-      update_time(2.0,0.8,CRAWL_GAIT,gait_state);
+      update_time(2.0, 0.8, CRAWL_GAIT, gait_state);
+    }
+    break;
+  // case STATE_POS_1:
+  //   front_AB.moveTo_constVelo(LEFT, -AB_POS_1, 5.0);
+  //   front_HIP.moveTo_constVelo(LEFT, -HIP_POS_1, 5.0);
+  //   front_KNEE.moveTo_constVelo(LEFT, -KNEE_POS_1, 5.0);
+  //   front_AB.moveTo_constVelo(RIGHT, AB_POS_2, 5.0);
+  //   front_HIP.moveTo_constVelo(RIGHT, HIP_POS_2, 5.0);
+  //   front_KNEE.moveTo_constVelo(RIGHT, KNEE_POS_2, 5.0);
+  //   if (millis()-timerrr > 5*1000)
+  //   {
+  //   Serial.println("switching to idle");
+  //     loop_state = STATE_IDLE;
+  //   }
+  //   break;
+  // case STATE_POS_2:
+  //   front_AB.moveTo_constVelo(LEFT, -AB_POS_2, 5.0);
+  //   front_HIP.moveTo_constVelo(LEFT, -HIP_POS_2, 5.0);
+  //   front_KNEE.moveTo_constVelo(LEFT, -KNEE_POS_2, 5.0);
+  //   front_AB.moveTo_constVelo(RIGHT, AB_POS_1, 5.0);
+  //   front_HIP.moveTo_constVelo(RIGHT, HIP_POS_1, 5.0);
+  //   front_KNEE.moveTo_constVelo(RIGHT, KNEE_POS_1, 5.0);
+  //   if (millis()-timerrr > 4.95*1000)
+  //   {
+  //   Serial.println("switching to idle");
+  //     loop_state = STATE_IDLE;
+  //   }
+  //   break;
+  case STATE_test:
+    if (timer.check())
+    {
+      front_AB.update(LEFT);
+      front_AB.update(RIGHT);
+
+      front_HIP.update(LEFT);
+      front_HIP.update(RIGHT);
+
+      front_KNEE.update(LEFT);
+      front_KNEE.update(RIGHT);
+
+      back_AB.update(LEFT);
+      back_AB.update(RIGHT);
+
+      back_HIP.update(LEFT);
+      back_HIP.update(RIGHT);
+
+      back_KNEE.update(LEFT);
+      back_KNEE.update(RIGHT);
+
+      // Serial.println("----------------");
 
     }
     break;

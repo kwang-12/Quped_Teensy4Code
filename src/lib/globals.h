@@ -1,14 +1,14 @@
 #pragma once
-#include <cmath>
+// #include <cmath>
 #include <arduino.h>
 // Development modes:
 #define DEBUG_SERIAL
 // #define NORMAL_OPERATION
 
 #define ENABLE_FRONT_LEFT
-#define ENABLE_FRONT_RIGHT
-#define ENABLE_BACK_LEFT
-#define ENABLE_BACK_RIGHT
+// #define ENABLE_FRONT_RIGHT
+// #define ENABLE_BACK_LEFT
+// #define ENABLE_BACK_RIGHT
 
 #if defined(ENABLE_FRONT_LEFT) || defined(ENABLE_FRONT_RIGHT)
   #define ENABLE_FRONT
@@ -28,7 +28,16 @@
 #define HIP 'h'
 #define KNEE 'k'
 
-#define KNEE_GearRatio (float)1.25
+#define KNEE_GearRatio 1.25f
+#define DIMENSION_A2 0.218f
+#define DIMENSION_A3 0.230f
+#define DIMENSION_D2 0.092f
+
+#define FRONT_LEFT_LEG 'q'
+#define FRONT_RIGHT_LEG 'w'
+#define BACK_LEFT_LEG 'e'
+#define BACK_RIGHT_LEG 'r'
+
 
 #define STANDBY_POS_FLAG 's'
 #define POS_CONVERSION_TIME (float)5.0
@@ -36,6 +45,14 @@
 #define AB_STANDBY_POS_DEG (float)0.0
 #define HIP_STANDBY_POS_DEG (float)40.0
 #define KNEE_STANDBY_POS_DEG (float)80.0
+
+#define AB_POS_1 (float)-14.6465
+#define HIP_POS_1 (float)27.5516
+#define KNEE_POS_1 (float)53.5543
+
+#define AB_POS_2 (float)15.3339
+#define HIP_POS_2 (float)48.998
+#define KNEE_POS_2 (float)94.6667
 
 #define LEG_LEFT_POS_MULTIPLIER (short int)-1
 #define LEG_RIGHT_POS_MULTIPLIER (short int)1
@@ -65,6 +82,9 @@
 #define STATE_IDLE 'z'
 #define STATE_1_STEP '1'
 #define STATE_CONTINUOUS 'c'
+#define STATE_POS_1 'q'
+#define STATE_POS_2 'w'
+#define STATE_test 'e'
 
 #define PI_math (float)3.141592653
 

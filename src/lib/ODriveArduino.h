@@ -18,8 +18,8 @@ public:
     int axis0_error_ = 0;
     int axis1_error_ = 0;
 
-    Metro axis0_timer_ = Metro(10);
-    Metro axis1_timer_ = Metro(10);
+    Metro axis0_timer_ = Metro(SERIAL_MSG_TIMER);
+    Metro axis1_timer_ = Metro(SERIAL_MSG_TIMER);
 
     enum AxisState_t {
         AXIS_STATE_UNDEFINED = 0,           //<! will fall through to idle
@@ -40,6 +40,12 @@ public:
         long int a1_velo_reading = 0;
         long int a1_current_reading = 0;
     }encoder_readings;
+    struct current_readings{
+        float a0_Iq_board_setpoint = 0.0;
+        float a0_Iq_measured = 0.0;
+        float a1_Iq_board_setpoint = 0.0;
+        float a1_Iq_measured = 0.0;
+    }current_readings;
     struct joint_pos{
         long int a0_zero_pos = 0;
         long int a0_pos_1 = 0;
@@ -54,15 +60,23 @@ public:
         float a0_start_deg = 0.0;
         float a0_target_deg = 0.0;
         float a0_velo_deg = 0.0;
+        unsigned long a0_travel_start_time = 0;
+        unsigned long a0_travelTime = 0;
+        bool a0_calc_required_flag = false;
+
+        float a1_start_deg = 0.0;
+        float a1_target_deg = 0.0;
+        float a1_velo_deg = 0.0;
+        unsigned long a1_travel_start_time = 0;
+        unsigned long a1_travelTime = 0;
+        bool a1_calc_required_flag = false;
+
         float a0_travelTime_total = 0.0;
         float a0_traveltime_start = 0.0;
         // float a0_travelTime_current = 0.0;
         bool a0_arrival = false;
         bool a0_movementActivation = false;
 
-        float a1_start_deg = 0.0;
-        float a1_target_deg = 0.0;
-        float a1_velo_deg = 0.0;
         float a1_travelTime_total = 0.0;
         float a1_traveltime_start = 0.0;
         // float a1_traveltime_current = 0.0;
@@ -108,6 +122,15 @@ public:
     */
     bool moveTo_constVelo(char axis_tag, float target_deg, float inSec);
 
+    /**
+     * Update joint target position
+     */
+    void update_target(char axis_tag, bool calc_required, unsigned long inMicroSec, float target_deg, float target_velo=0.0);
+
+    /**
+     * 
+     */
+    void update(char axis_tag);
 
     // Timer
     void iniTimer(char axis_tag, unsigned long time_interval);
@@ -126,10 +149,15 @@ public:
     // Read commands
     void readEncoderData(char axis_tag);
     void readAxisError(char axis_tag);
+    void readAxisCurrent(char axis_tag);
 
     // getters
     long int getAxisNeutralPos(char axis_tag);
     long int getAxisPos(char axis_tag, bool refresh_flag);
+    long int getAxisVelo(char axis_tag, bool refresh_flag);
+    float getAxisIqBoardSetpoint(char axis_tag);
+    float getAxisIqMeasured(char axis_tag);
+
     int getAxisError(char axis_tag, bool refresh_flag);
 
     // General params
