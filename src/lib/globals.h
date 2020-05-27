@@ -1,6 +1,6 @@
 #pragma once
 // #include <cmath>
-#include <arduino.h>
+#include <Arduino.h>
 // Development modes:
 #define DEBUG_SERIAL
 // #define NORMAL_OPERATION
@@ -32,6 +32,8 @@
 #define DIMENSION_A2 0.218f
 #define DIMENSION_A3 0.230f
 #define DIMENSION_D2 0.092f
+#define DIMENSION_LENGTH 0.517f
+#define DIMENSION_WIDTH 0.2f
 
 #define FRONT_LEFT_LEG 'q'
 #define FRONT_RIGHT_LEG 'w'
@@ -43,8 +45,8 @@
 #define POS_CONVERSION_TIME (float)5.0
 #define POS_CONVERSION_MIN_SPEED (float)0.1
 #define AB_STANDBY_POS_DEG (float)0.0
-#define HIP_STANDBY_POS_DEG (float)40.0
-#define KNEE_STANDBY_POS_DEG (float)80.0
+#define HIP_STANDBY_POS_DEG (float)32.95
+#define KNEE_STANDBY_POS_DEG (float)63.99
 
 #define AB_POS_1 (float)-14.6465
 #define HIP_POS_1 (float)27.5516
@@ -85,6 +87,7 @@
 #define STATE_POS_1 'q'
 #define STATE_POS_2 'w'
 #define STATE_test 'e'
+#define STATE_TIME_TEST 'r'
 
 #define PI_math (float)3.141592653
 

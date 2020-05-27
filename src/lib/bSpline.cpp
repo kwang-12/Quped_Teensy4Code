@@ -88,7 +88,6 @@ float bSpline::calc_base(float *time_stamp, unsigned short count, unsigned short
 float bSpline::get_point(float *timestamp)
 {
     float pos = 0.0;
-    int boundary_val = 0;
     for (unsigned short tick=0; tick<num_points_+k_-1; tick++)
     {
         pos = pos+calc_base(timestamp, tick, k_)*ctrl_point_[tick];

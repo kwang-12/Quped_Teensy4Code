@@ -96,7 +96,7 @@ long int ODriveArduino::transPosition_deg2num(char axis_tag, float deg)
             return (long int)(deg / 360 * 180224 + joint_pos.a0_zero_pos);
         }
     }
-    else if (axis_tag == axis1_tag_)
+    else
     {
         if (odrv_prop_ == KNEE)
         {
@@ -134,7 +134,7 @@ float ODriveArduino::transPosition_num2deg(char axis_tag, long int num)
             return ((float)(num - joint_pos.a0_zero_pos)) * 360 / 180224;
         }
     }
-    else if (axis_tag == axis1_tag_)
+    else
     {
         if (odrv_prop_ == KNEE)
         {
@@ -427,7 +427,7 @@ bool ODriveArduino::checkTimer(char axis_tag)
     {
         return axis0_timer_.check();
     }
-    else if (axis_tag == axis1_tag_)
+    else
     {
         return axis1_timer_.check();
     }
@@ -822,7 +822,7 @@ long int ODriveArduino::getAxisNeutralPos(char axis_tag)
     {
         return joint_pos.a0_zero_pos;
     }
-    else if (axis_tag == axis1_tag_)
+    else
     {
         return joint_pos.a1_zero_pos;
     }
@@ -838,7 +838,7 @@ long int ODriveArduino::getAxisPos(char axis_tag, bool refresh_flag)
         }
         return encoder_readings.a0_pos_reading;
     }
-    else if (axis_tag == axis1_tag_)
+    else
     {
         if (refresh_flag == true)
         {
@@ -858,7 +858,7 @@ long int ODriveArduino::getAxisVelo(char axis_tag, bool refresh_flag)
         }
         return encoder_readings.a0_velo_reading;
     }
-    else if (axis_tag == axis1_tag_)
+    else
     {
         if (refresh_flag == true)
         {
@@ -903,7 +903,7 @@ float ODriveArduino::getAxisIqBoardSetpoint(char axis_tag)
     {
         return current_readings.a0_Iq_board_setpoint;
     }
-    else if (axis_tag == axis1_tag_)
+    else
     {
         return current_readings.a1_Iq_board_setpoint;
     }
@@ -915,7 +915,7 @@ float ODriveArduino::getAxisIqMeasured(char axis_tag)
     {
         return current_readings.a0_Iq_measured;
     }
-    else if (axis_tag == axis1_tag_)
+    else
     {
         return current_readings.a1_Iq_measured;
     }
@@ -931,7 +931,7 @@ int ODriveArduino::getAxisError(char axis_tag, bool refresh_flag)
         }
         return axis0_error_;
     }
-    else if (axis_tag == axis1_tag_)
+    else
     {
         if (refresh_flag == true)
         {
