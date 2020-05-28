@@ -1168,8 +1168,9 @@ void config_sequence()
       float t1;
       float t2;
       float t3;
+      bool test;
       Serial.println(micros());
-      leg_inverseKinematics_pos(0, 0, 0, 0.4, 0.142, 0.05, t1, t2, t3, FRONT_LEFT_LEG);
+      test = leg_inverseKinematics_pos(0, 0, 0, 0.4, 0.142, 0.05, t1, t2, t3, FRONT_LEFT_LEG);
       Serial.print(t1 / PI_math * 180);
       Serial.print(' ');
       Serial.print(t2 / PI_math * 180);
@@ -1178,7 +1179,7 @@ void config_sequence()
 
       Serial.println(micros());
       Serial.println(micros());
-      leg_inverseKinematics_pos(0, 0, 0, 0.4, 0.142, 0.05, t1, t2, t3, FRONT_RIGHT_LEG);
+      test = leg_inverseKinematics_pos(0, 0, 0, 0.4, 0.142, 0.05, t1, t2, t3, FRONT_RIGHT_LEG);
       Serial.print(t1 / PI_math * 180);
       Serial.print(' ');
       Serial.print(t2 / PI_math * 180);
@@ -1187,7 +1188,7 @@ void config_sequence()
 
       Serial.println(micros());
       Serial.println(micros());
-      leg_inverseKinematics_pos(0, 0, 0, 0.4, 0.142, -0.05, t1, t2, t3, BACK_LEFT_LEG);
+      test = leg_inverseKinematics_pos(0, 0, 0, 0.4, 0.142, -0.05, t1, t2, t3, BACK_LEFT_LEG);
       Serial.print(t1 / PI_math * 180);
       Serial.print(' ');
       Serial.print(t2 / PI_math * 180);
@@ -1196,7 +1197,7 @@ void config_sequence()
 
       Serial.println(micros());
       Serial.println(micros());
-      leg_inverseKinematics_pos(0, 0, 0, 0.4, 0.142, -0.05, t1, t2, t3, BACK_RIGHT_LEG);
+      test = leg_inverseKinematics_pos(0, 0, 0, 0.4, 0.142, -0.05, t1, t2, t3, BACK_RIGHT_LEG);
       Serial.print(t1 / PI_math * 180);
       Serial.print(' ');
       Serial.print(t2 / PI_math * 180);
@@ -1208,26 +1209,34 @@ void config_sequence()
     else if (serial_input == "trans")
     {
       float yaw_desired = static_cast<float>(30)/180*PI_math;
-      float pitch_desired = static_cast<float>(0)/180*PI_math;
-      float roll_desired = static_cast<float>(30)/180*PI_math;
-      float forward_desired = 0;
-      float horizontal_desired = 0;
-      float vertical_desired = 0.38;
-      float FL_end_x, FL_end_y, FL_end_z;
-      float FR_end_x, FR_end_y, FR_end_z;
-      float BL_end_x, BL_end_y, BL_end_z;
-      float BR_end_x, BR_end_y, BR_end_z;
+      float pitch_desired = static_cast<float>(10)/180*PI_math;
+      float roll_desired = static_cast<float>(10)/180*PI_math;
+      float forward_delta = 0;
+      float horizontal_delta = 0;
+      float vertical_delta = -0.05;
+      bool FL_support = true;
+      float FL_ab, FL_hip, FL_knee;
+      bool FR_support = true;
+      float FR_ab, FR_hip, FR_knee;
+      bool BL_support = true;
+      float BL_ab, BL_hip, BL_knee;
+      bool BR_support = true;
+      float BR_ab, BR_hip, BR_knee;
+
+      bool test;
+
       BLA::Matrix<3> FL_vec;
       BLA::Matrix<3> FR_vec;
       BLA::Matrix<3> BL_vec;
       BLA::Matrix<3> BR_vec;
       Serial.println(micros());
-      calc_posture_joint_pos(yaw_desired, pitch_desired, roll_desired, 
-                             forward_desired, horizontal_desired, vertical_desired,
-                             FL_end_x,  FL_end_y,  FL_end_z, 
-                             FR_end_x,  FR_end_y,  FR_end_z, 
-                             BR_end_x,  BR_end_y,  BR_end_z, 
-                             BL_end_x,  BL_end_y,  BL_end_z);
+      test = calc_posture_joint_pos(yaw_desired, pitch_desired, roll_desired, 
+                                    forward_delta, horizontal_delta, vertical_delta,
+                                    FL_ab, FL_hip, FL_knee, FL_support, 
+                                    FR_ab, FR_hip, FR_knee, FR_support, 
+                                    BR_ab, BR_hip, BR_knee, BR_support,
+                                    BL_ab, BL_hip, BL_knee, BL_support);
+      Serial.println(test);
       Serial.println(micros());
     }
     else if (serial_input == "exit")

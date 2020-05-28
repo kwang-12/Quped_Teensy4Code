@@ -81,9 +81,9 @@ void leg_forwardKinematics_pos(float ab_deg_now, float hip_deg_now, float knee_d
                            char leg_choice);
 
 bool leg_inverseKinematics_pos(float ab_deg_now, float hip_deg_now, float knee_deg_now,
-                           float x_desired, float y_desired, float z_desired,
-                           float &ab_deg_desired, float &hip_deg_desired, float &knee_deg_desired,
-                           char leg_choice);
+                               float x_desired, float y_desired, float z_desired,
+                               float &ab_deg_desired, float &hip_deg_desired, float &knee_deg_desired,
+                               char leg_choice);
 
 /**
  * Find the desired joint angles for a desired body posture
