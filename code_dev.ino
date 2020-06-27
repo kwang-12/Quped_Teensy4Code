@@ -13,6 +13,12 @@ String odrv5_name = "front_HIP";
 String odrv6_name = "front_AB";
 
 // ODrive object
+// ODriveArduino back_KNEE(Serial1, odrv1_name, KNEE, 1, RIGHT, LEFT, SERIAL_BAUD_RATE);  //knee back, axis0-RB, axis1-LB
+// ODriveArduino back_HIP(Serial2, odrv2_name, HIP, 2, RIGHT, LEFT, SERIAL_BAUD_RATE);    //hip back, axis0-RB, axis1-LB
+// ODriveArduino back_AB(Serial3, odrv3_name, AB, 3, LEFT, RIGHT, SERIAL_BAUD_RATE);      //ab back, axis0-LB, axis1-RB
+// ODriveArduino front_KNEE(Serial4, odrv4_name, KNEE, 4, LEFT, RIGHT, SERIAL_BAUD_RATE); //knee front, axis0-RB, axis1-LB
+// ODriveArduino front_HIP(Serial5, odrv5_name, HIP, 5, LEFT, RIGHT, SERIAL_BAUD_RATE);   //hip front, axis0-LB, axis1-RB
+// ODriveArduino front_AB(Serial7, odrv6_name, AB, 7, RIGHT, LEFT, SERIAL_BAUD_RATE);     //ab front, axis0-LB, axis1-RB
 ODriveArduino back_KNEE(Serial1, odrv1_name, KNEE, 1, RIGHT, LEFT, SERIAL_BAUD_RATE);  //knee back, axis0-RB, axis1-LB
 ODriveArduino back_HIP(Serial2, odrv2_name, HIP, 2, RIGHT, LEFT, SERIAL_BAUD_RATE);    //hip back, axis0-RB, axis1-LB
 ODriveArduino back_AB(Serial3, odrv3_name, AB, 3, LEFT, RIGHT, SERIAL_BAUD_RATE);      //ab back, axis0-LB, axis1-RB
@@ -26,7 +32,6 @@ ODriveArduino *front_KNEE_ptr = &front_KNEE;
 ODriveArduino *front_HIP_ptr = &front_HIP;
 ODriveArduino *front_AB_ptr = &front_AB;
 
-
 // Initialize timer
 Metro timer = Metro(msg_timer_interval);
 
@@ -34,11 +39,10 @@ float leg_pos_offset_forward = 0.03;
 float leg_pos_offset_horizontal = 0.03;
 
 radio radio_readings;
-kinematics qPed(0.075,3,2,0.35,leg_pos_offset_forward,leg_pos_offset_horizontal);
+kinematics qPed(0.075, 3, 2, 0.35, leg_pos_offset_forward, leg_pos_offset_horizontal);
 float kine_time = 0;
 int test_timer = 0;
 bool manual_stop = false;
-
 
 loop_state state = STATE_IDLE;
 
@@ -72,54 +76,117 @@ void odrv_connect(ODriveArduino odrv)
  */
 void find_joint_neutral_position()
 {
+  String find_input = "yeah";
+  while (find_input != "exit")
+  {
+    Serial.println("-----------------Find joint limits------------------");
 #ifdef ENABLE_FRONT_LEFT
-  front_AB.find_joint_neutral_position('r', LEFT);
-  front_HIP.find_joint_neutral_position('c', LEFT);
-  front_KNEE.find_joint_neutral_position('r', LEFT);
+    Serial.println("Enter FL to find joint limits for front left leg");
 #endif
 #ifdef ENABLE_FRONT_RIGHT
-  front_AB.find_joint_neutral_position('r', RIGHT);
-  front_HIP.find_joint_neutral_position('c', RIGHT);
-  front_KNEE.find_joint_neutral_position('r', RIGHT);
+    Serial.println("Enter FR to find joint limits for front right leg");
 #endif
 #ifdef ENABLE_BACK_LEFT
-  back_AB.find_joint_neutral_position('r', LEFT);
-  back_HIP.find_joint_neutral_position('c', LEFT);
-  back_KNEE.find_joint_neutral_position('r', LEFT);
+    Serial.println("Enter BL to find joint limits for back left leg");
 #endif
 #ifdef ENABLE_BACK_RIGHT
-  back_AB.find_joint_neutral_position('r', RIGHT);
-  back_HIP.find_joint_neutral_position('c', RIGHT);
-  back_KNEE.find_joint_neutral_position('r', RIGHT);
+    Serial.println("Enter BR to find joint limits for back right leg");
 #endif
+    Serial.println("Enter exit to exit the find joint limits sequence");
+    while (Serial.available() == 0)
+      ;
+    find_input = rdStr();
+    if (find_input == "FL")
+    {
+#ifdef ENABLE_FRONT_LEFT
+      front_AB.find_joint_neutral_position('r', LEFT);
+      front_HIP.find_joint_neutral_position('c', LEFT);
+      front_KNEE.find_joint_neutral_position('r', LEFT);
+#endif
+    }
+    else if (find_input == "FR")
+    {
+#ifdef ENABLE_FRONT_RIGHT
+      front_AB.find_joint_neutral_position('r', RIGHT);
+      front_HIP.find_joint_neutral_position('c', RIGHT);
+      front_KNEE.find_joint_neutral_position('r', RIGHT);
+#endif
+    }
+    else if (find_input == "BL")
+    {
+#ifdef ENABLE_BACK_LEFT
+      back_AB.find_joint_neutral_position('r', LEFT);
+      back_HIP.find_joint_neutral_position('c', LEFT);
+      back_KNEE.find_joint_neutral_position('r', LEFT);
+#endif
+    }
+    else if (find_input == "BR")
+    {
+#ifdef ENABLE_BACK_RIGHT
+      back_AB.find_joint_neutral_position('r', RIGHT);
+      back_HIP.find_joint_neutral_position('c', RIGHT);
+      back_KNEE.find_joint_neutral_position('r', RIGHT);
+#endif
+    }
+  }
 }
-
 
 void manual_find()
 {
+  String find_input = "yeah";
+  while (find_input != "exit")
+  {
+    Serial.println("--------------Manually find joint limits---------------");
 #ifdef ENABLE_FRONT_LEFT
-  front_AB.find_joint_neutral_position('u', LEFT);
-  front_HIP.find_joint_neutral_position('u', LEFT);
-  front_KNEE.find_joint_neutral_position('u', LEFT);
+    Serial.println("Enter FL to find joint limits for front left leg");
 #endif
 #ifdef ENABLE_FRONT_RIGHT
-  front_AB.find_joint_neutral_position('u', RIGHT);
-  front_HIP.find_joint_neutral_position('u', RIGHT);
-  front_KNEE.find_joint_neutral_position('u', RIGHT);
+    Serial.println("Enter FR to find joint limits for front right leg");
 #endif
 #ifdef ENABLE_BACK_LEFT
-  back_AB.find_joint_neutral_position('u', LEFT);
-  back_HIP.find_joint_neutral_position('u', LEFT);
-  back_KNEE.find_joint_neutral_position('u', LEFT);
+    Serial.println("Enter BL to find joint limits for back left leg");
 #endif
 #ifdef ENABLE_BACK_RIGHT
-  back_AB.find_joint_neutral_position('u', RIGHT);
-  back_HIP.find_joint_neutral_position('u', RIGHT);
-  back_KNEE.find_joint_neutral_position('u', RIGHT);
+    Serial.println("Enter BR to find joint limits for back right leg");
 #endif
+    Serial.println("Enter exit to exit the find joint limits sequence");
+    while (Serial.available() == 0)
+      ;
+    find_input = rdStr();
+    if (find_input == "FL")
+    {
+#ifdef ENABLE_FRONT_LEFT
+      front_AB.find_joint_neutral_position('u', LEFT);
+      front_HIP.find_joint_neutral_position('u', LEFT);
+      front_KNEE.find_joint_neutral_position('u', LEFT);
+#endif
+    }
+    else if (find_input == "FR")
+    {
+#ifdef ENABLE_FRONT_RIGHT
+      front_AB.find_joint_neutral_position('u', RIGHT);
+      front_HIP.find_joint_neutral_position('u', RIGHT);
+      front_KNEE.find_joint_neutral_position('u', RIGHT);
+#endif
+    }
+    else if (find_input == "BL")
+    {
+#ifdef ENABLE_BACK_LEFT
+      back_AB.find_joint_neutral_position('u', LEFT);
+      back_HIP.find_joint_neutral_position('u', LEFT);
+      back_KNEE.find_joint_neutral_position('u', LEFT);
+#endif
+    }
+    else if (find_input == "BR")
+    {
+#ifdef ENABLE_BACK_RIGHT
+      back_AB.find_joint_neutral_position('u', RIGHT);
+      back_HIP.find_joint_neutral_position('u', RIGHT);
+      back_KNEE.find_joint_neutral_position('u', RIGHT);
+#endif
+    }
+  }
 }
-
-
 
 /**
  * Read ODrives' error codes
@@ -388,7 +455,6 @@ void moveToPos_STDBY_blocking()
   }
 }
 
-
 void config_sequence()
 {
   while (true)
@@ -550,90 +616,88 @@ void loop()
     qPed.reset();
   }
 
-  
   // state machine
   switch (state)
   {
-    case STATE_UPDATE:
+  case STATE_UPDATE:
+  {
+    if (timer.check())
     {
-      if (timer.check())
-      {
-        front_AB.update(LEFT);
-        front_AB.update(RIGHT);
+      front_AB.update(LEFT);
+      front_AB.update(RIGHT);
 
-        front_HIP.update(LEFT);
-        front_HIP.update(RIGHT);
+      front_HIP.update(LEFT);
+      front_HIP.update(RIGHT);
 
-        front_KNEE.update(LEFT);
-        front_KNEE.update(RIGHT);
+      front_KNEE.update(LEFT);
+      front_KNEE.update(RIGHT);
 
-        back_AB.update(LEFT);
-        back_AB.update(RIGHT);
+      back_AB.update(LEFT);
+      back_AB.update(RIGHT);
 
-        back_HIP.update(LEFT);
-        back_HIP.update(RIGHT);
+      back_HIP.update(LEFT);
+      back_HIP.update(RIGHT);
 
-        back_KNEE.update(LEFT);
-        back_KNEE.update(RIGHT);
+      back_KNEE.update(LEFT);
+      back_KNEE.update(RIGHT);
 
-        // Serial.println("----------------");
-      }
+      // Serial.println("----------------");
     }
-    break;
-    case STATE_K_UPDATE:
+  }
+  break;
+  case STATE_K_UPDATE:
+  {
+    if (timer.check())
     {
-      if (timer.check())
+      if (!manual_stop)
       {
-        if (!manual_stop)
-        {
-          radio_readings.debug_update(1500,1500,1500,2000);
-        }
-        // else if (millis()-test_timer >= 30000 && millis()-test_timer <= 40000 && !manual_stop)
-        // {
-        //   radio_readings.debug_update(1500,1500,1500,1000);
-        // }
-        // else if (millis()-test_timer >= 50000 && millis()-test_timer <= 55000 && !manual_stop)
-        // {
-        //   radio_readings.debug_update(2000,1500,1500,1500);
-        // }
-        else
-        {
-          radio_readings.debug_update(1500,1500,1500,1500);
-        }
-        
-        qPed.update(kine_time,radio_readings);
-        if (qPed.kinematic_task != TASK_IDLE)
-        {
-          kine_time = kine_time + msg_timer_interval/1000;
-        }
-        else
-        {
-          kine_time = 0;
-        }
-        Serial.print("Time: ");
-        Serial.println(kine_time,4);
-        qPed.debug_print();
-
-        front_AB.SetPosition(LEFT,-qPed.FL.ab_rad/PI_math*180);
-        front_HIP.SetPosition(LEFT,-qPed.FL.hip_rad/PI_math*180);
-        front_KNEE.SetPosition(LEFT,-qPed.FL.knee_rad/PI_math*180);
-
-        front_AB.SetPosition(RIGHT,-qPed.FR.ab_rad/PI_math*180);
-        front_HIP.SetPosition(RIGHT,-qPed.FR.hip_rad/PI_math*180);
-        front_KNEE.SetPosition(RIGHT,-qPed.FR.knee_rad/PI_math*180);
-
-        back_AB.SetPosition(LEFT,-qPed.BL.ab_rad/PI_math*180);
-        back_HIP.SetPosition(LEFT,-qPed.BL.hip_rad/PI_math*180);
-        back_KNEE.SetPosition(LEFT,-qPed.BL.knee_rad/PI_math*180);
-
-        back_AB.SetPosition(RIGHT,-qPed.BR.ab_rad/PI_math*180);
-        back_HIP.SetPosition(RIGHT,-qPed.BR.hip_rad/PI_math*180);
-        back_KNEE.SetPosition(RIGHT,-qPed.BR.knee_rad/PI_math*180);
-
+        radio_readings.debug_update(1500, 1500, 1500, 2000);
       }
+      // else if (millis()-test_timer >= 30000 && millis()-test_timer <= 40000 && !manual_stop)
+      // {
+      //   radio_readings.debug_update(1500,1500,1500,1000);
+      // }
+      // else if (millis()-test_timer >= 50000 && millis()-test_timer <= 55000 && !manual_stop)
+      // {
+      //   radio_readings.debug_update(2000,1500,1500,1500);
+      // }
+      else
+      {
+        radio_readings.debug_update(1500, 1500, 1500, 1500);
+      }
+
+      qPed.update(kine_time, radio_readings);
+      if (qPed.kinematic_task != TASK_IDLE)
+      {
+        kine_time = kine_time + msg_timer_interval / 1000;
+      }
+      else
+      {
+        kine_time = 0;
+      }
+      Serial.print("Time: ");
+      Serial.println(kine_time, 4);
+      qPed.debug_print();
+
+      front_AB.SetPosition(LEFT, -qPed.FL.ab_rad / PI_math * 180);
+      front_HIP.SetPosition(LEFT, -qPed.FL.hip_rad / PI_math * 180);
+      front_KNEE.SetPosition(LEFT, -qPed.FL.knee_rad / PI_math * 180);
+
+      front_AB.SetPosition(RIGHT, -qPed.FR.ab_rad / PI_math * 180);
+      front_HIP.SetPosition(RIGHT, -qPed.FR.hip_rad / PI_math * 180);
+      front_KNEE.SetPosition(RIGHT, -qPed.FR.knee_rad / PI_math * 180);
+
+      back_AB.SetPosition(LEFT, -qPed.BL.ab_rad / PI_math * 180);
+      back_HIP.SetPosition(LEFT, -qPed.BL.hip_rad / PI_math * 180);
+      back_KNEE.SetPosition(LEFT, -qPed.BL.knee_rad / PI_math * 180);
+
+      back_AB.SetPosition(RIGHT, -qPed.BR.ab_rad / PI_math * 180);
+      back_HIP.SetPosition(RIGHT, -qPed.BR.hip_rad / PI_math * 180);
+      back_KNEE.SetPosition(RIGHT, -qPed.BR.knee_rad / PI_math * 180);
     }
-    break;
-    default:
+  }
+  break;
+  default:
     break;
   }
 }

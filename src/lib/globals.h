@@ -74,6 +74,30 @@ const float dimension_d2 = 0.092;
 const float dimension_length = 0.517;
 const float dimension_width = 0.2;
 
+enum serial_port
+{
+  SERIAL_PORT_1 = 1,
+  SERIAL_PORT_2 = 2,
+  SERIAL_PORT_3 = 3,
+  SERIAL_PORT_4 = 4,
+  SERIAL_PORT_5 = 5,
+  SERIAL_PORT_6 = 6,
+  SERIAL_PORT_7 = 7
+};
+
+enum actuator_type
+{
+  TYPE_AB = 0,
+  TYPE_HIP = 1,
+  TYPE_KNEE = 2
+};
+
+enum axis_tag
+{
+  LEFT_MOTOR = 0,
+  RIGHT_MOTOR = 1
+};
+
 enum leg_tag
 {
     tag_FL = 1,

@@ -9,29 +9,25 @@ public:
     Stream& serial_;
 
     String odrv_name_;
+
     char odrv_prop_;
     char axis0_tag_;
     char axis1_tag_;
     int serial_num_;
-    int serial_baud_rate_;
 
+    actuator_type type;
+    axis_tag axis0;
+    axis_tag axis1;
+    serial_port port_num;
+    
+    int serial_baud_rate_;
     int axis0_error_ = 0;
     int axis1_error_ = 0;
+
 
     Metro axis0_timer_ = Metro(SERIAL_MSG_TIMER);
     Metro axis1_timer_ = Metro(SERIAL_MSG_TIMER);
 
-    enum AxisState_t {
-        AXIS_STATE_UNDEFINED = 0,           //<! will fall through to idle
-        AXIS_STATE_IDLE = 1,                //<! disable PWM and do nothing
-        AXIS_STATE_STARTUP_SEQUENCE = 2, //<! the actual sequence is defined by the config.startup_... flags
-        AXIS_STATE_FULL_CALIBRATION_SEQUENCE = 3,   //<! run all calibration procedures, then idle
-        AXIS_STATE_MOTOR_CALIBRATION = 4,   //<! run motor calibration
-        AXIS_STATE_SENSORLESS_CONTROL = 5,  //<! run sensorless control
-        AXIS_STATE_ENCODER_INDEX_SEARCH = 6, //<! run encoder index search
-        AXIS_STATE_ENCODER_OFFSET_CALIBRATION = 7, //<! run encoder offset calibration
-        AXIS_STATE_CLOSED_LOOP_CONTROL = 8  //<! run closed loop control
-    };
     struct encoder_readings{
         long int a0_pos_reading = 0;
         long int a0_velo_reading = 0;
