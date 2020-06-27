@@ -1,8 +1,6 @@
 // Libraries:
 #include "src/lib/globals.h"
 #include "src/lib/ODriveArduino.h"
-#include "src/lib/jointPositions.h"
-#include "src/lib/leg_timer.h"
 #include "src/lib/kinematics.h"
 #include <Metro.h>
 
@@ -28,14 +26,9 @@ ODriveArduino *front_KNEE_ptr = &front_KNEE;
 ODriveArduino *front_HIP_ptr = &front_HIP;
 ODriveArduino *front_AB_ptr = &front_AB;
 
-// jointPositions object
-jointPositions joint;
-jointPositions *joint_ptr = &joint;
 
 // Initialize timer
 Metro timer = Metro(msg_timer_interval);
-
-leg_timer legtimertest(2.0, 5, 400);
 
 float leg_pos_offset_forward = 0.03;
 float leg_pos_offset_horizontal = 0.03;
@@ -126,69 +119,7 @@ void manual_find()
 #endif
 }
 
-/**
- * Send desired joint position and velocities to ODrives
- * send the updated joint positions to odrives
- * Note that the positions usually need to be updated prior to sending
- */
-void send(jointPositions *joint_ptr, ODriveArduino *front_AB_ptr, ODriveArduino *front_HIP_ptr, ODriveArduino *front_KNEE_ptr,
-          ODriveArduino *back_AB_ptr, ODriveArduino *back_HIP_ptr, ODriveArduino *back_KNEE_ptr)
-{
-  // Serial.print(millis());
-  // Serial.print(" - fL: ");
-  // Serial.print(tick_fL);
-  // Serial.print(" - fR: ");
-  // Serial.print(tick_fR);
-  // Serial.print(" - bL: ");
-  // Serial.print(tick_bL);
-  // Serial.print(" - bR: ");
-  // Serial.println(tick_bR);
-#ifdef ENABLE_FRONT_RIGHT
-  front_AB_ptr->SetPosition(RIGHT, joint_ptr->joint_pos_target_deg.fR_ab_pos, joint_ptr->joint_vel_target_deg.fR_ab_velo);
-  front_HIP_ptr->SetPosition(RIGHT, joint_ptr->joint_pos_target_deg.fR_hip_pos, joint_ptr->joint_vel_target_deg.fR_hip_velo);
-  front_KNEE_ptr->SetPosition(RIGHT, joint_ptr->joint_pos_target_deg.fR_knee_pos, joint_ptr->joint_vel_target_deg.fR_knee_velo);
-#endif
-#ifdef ENABLE_FRONT_LEFT
-  front_AB_ptr->SetPosition(LEFT, joint_ptr->joint_pos_target_deg.fL_ab_pos, joint_ptr->joint_vel_target_deg.fL_ab_velo);
-  front_HIP_ptr->SetPosition(LEFT, joint_ptr->joint_pos_target_deg.fL_hip_pos, joint_ptr->joint_vel_target_deg.fL_hip_velo);
-  front_KNEE_ptr->SetPosition(LEFT, joint_ptr->joint_pos_target_deg.fL_knee_pos, joint_ptr->joint_vel_target_deg.fL_knee_velo);
-#endif
-#ifdef ENABLE_BACK_RIGHT
-  back_AB_ptr->SetPosition(RIGHT, joint_ptr->joint_pos_target_deg.bR_ab_pos, joint_ptr->joint_vel_target_deg.bR_ab_velo);
-  back_HIP_ptr->SetPosition(RIGHT, joint_ptr->joint_pos_target_deg.bR_hip_pos, joint_ptr->joint_vel_target_deg.bR_hip_velo);
-  back_KNEE_ptr->SetPosition(RIGHT, joint_ptr->joint_pos_target_deg.bR_knee_pos, joint_ptr->joint_vel_target_deg.bR_knee_velo);
-#endif
-#ifdef ENABLE_BACK_LEFT
-  back_AB_ptr->SetPosition(LEFT, joint_ptr->joint_pos_target_deg.bL_ab_pos, joint_ptr->joint_vel_target_deg.bL_ab_velo);
-  back_HIP_ptr->SetPosition(LEFT, joint_ptr->joint_pos_target_deg.bL_hip_pos, joint_ptr->joint_vel_target_deg.bL_hip_velo);
-  back_KNEE_ptr->SetPosition(LEFT, joint_ptr->joint_pos_target_deg.bL_knee_pos, joint_ptr->joint_vel_target_deg.bL_knee_velo);
-#endif
-}
 
-/**
- * Read String from PC until newline is detected
- */
-String readString()
-{
-  String str = "";
-  static const unsigned long timeout = 1000;
-  unsigned long timeout_start = millis();
-  for (;;)
-  {
-    while (!Serial.available())
-    {
-      if (millis() - timeout_start >= timeout)
-      {
-        return str;
-      }
-    }
-    char c = Serial.read();
-    if (c == '\n')
-      break;
-    str += c;
-  }
-  return str;
-}
 
 /**
  * Read ODrives' error codes
@@ -332,7 +263,7 @@ void calibJoints()
     Serial.println("Enter exit to exit the calibration sequence");
     while (Serial.available() == 0)
       ;
-    calib_input = readString();
+    calib_input = rdStr();
     if (calib_input == "fab")
     {
 #ifdef ENABLE_FRONT
@@ -481,7 +412,7 @@ void config_sequence()
     Serial.println("=========================================");
     while (Serial.available() == 0)
       ;
-    String serial_input = readString();
+    String serial_input = rdStr();
     Serial.println(serial_input);
     if (serial_input == "stdby")
     {
@@ -581,13 +512,12 @@ void setup()
 
 void loop()
 {
-  // legtimertest.update();
 
   // process state requests
   String serial_input;
   if (Serial.available() != 0)
   {
-    serial_input = readString();
+    serial_input = rdStr();
     Serial.println(serial_input);
     Serial.println("-------");
   }
@@ -602,14 +532,6 @@ void loop()
   {
     state = STATE_IDLE;
     config_sequence();
-  }
-  else if (serial_input == "time")
-  {
-    Serial.println("checking....");
-    legtimertest.reset();
-    timer.reset();
-    state = STATE_TIME_TEST;
-    timerrr = millis();
   }
   else if (serial_input == "test")
   {
@@ -655,17 +577,6 @@ void loop()
         back_KNEE.update(RIGHT);
 
         // Serial.println("----------------");
-      }
-    }
-    break;
-    case STATE_TIME_TEST:
-    {
-      if (timer.check())
-      {
-      Serial.println(static_cast<float>(millis() - timerrr)/1000, 4);
-      Serial.print("timer: ");
-      Serial.println(legtimertest.get_time(), 4);
-      Serial.println("---------");
       }
     }
     break;

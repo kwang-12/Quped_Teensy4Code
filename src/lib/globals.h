@@ -86,7 +86,6 @@ enum loop_state
 {
   STATE_IDLE = 0,
   STATE_K_UPDATE = 1,
-  STATE_TIME_TEST = 2,
   STATE_UPDATE = 3
 };
 
