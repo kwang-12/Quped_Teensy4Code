@@ -1,14 +1,15 @@
 #pragma once
 // #include <cmath>
+#include <BasicLinearAlgebra.h>
 #include <Arduino.h>
 // Development modes:
 #define DEBUG_SERIAL
 // #define NORMAL_OPERATION
 
 #define ENABLE_FRONT_LEFT
-// #define ENABLE_FRONT_RIGHT
-// #define ENABLE_BACK_LEFT
-// #define ENABLE_BACK_RIGHT
+#define ENABLE_FRONT_RIGHT
+#define ENABLE_BACK_LEFT
+#define ENABLE_BACK_RIGHT
 
 #if defined(ENABLE_FRONT_LEFT) || defined(ENABLE_FRONT_RIGHT)
   #define ENABLE_FRONT
@@ -40,13 +41,15 @@
 #define BACK_LEFT_LEG 'e'
 #define BACK_RIGHT_LEG 'r'
 
-
 #define STANDBY_POS_FLAG 's'
 #define POS_CONVERSION_TIME (float)5.0
 #define POS_CONVERSION_MIN_SPEED (float)0.1
-#define AB_STANDBY_POS_DEG (float)0.0
-#define HIP_STANDBY_POS_DEG (float)32.95
-#define KNEE_STANDBY_POS_DEG (float)63.99
+// #define AB_STANDBY_POS_DEG (float)7.99
+// #define HIP_STANDBY_POS_DEG (float)27.67
+// #define KNEE_STANDBY_POS_DEG (float)68.79
+#define AB_STANDBY_POS_DEG (float)4.85
+#define HIP_STANDBY_POS_DEG (float)32.84
+#define KNEE_STANDBY_POS_DEG (float)72.95
 
 #define AB_POS_1 (float)-14.6465
 #define HIP_POS_1 (float)27.5516
@@ -59,49 +62,59 @@
 #define LEG_LEFT_POS_MULTIPLIER (short int)-1
 #define LEG_RIGHT_POS_MULTIPLIER (short int)1
 
-/**
- * Different choice of gaits
- */
-#define TROT_GAIT 't'
-#define PACE_GAIT 'p'
-#define BOUND_GAIT 'b'
-#define CRAWL_GAIT 'c'    // Standard crawl gait where each leg is off-phased by 0.25
-#define WAVE_GAIT 'w'
-
-/**
- * State of the gaits
- * Default state: GAIT_IDLE - Indicates that the leg is stationary and holding at default position
- */
-#define GAIT_IDLE 'i'
-#define GAIT_STARTING 's'
-#define GAIT_ENDING 'e'
-#define GAIT_NORMAL 'n'
-#define GAIT_ONESTEP '1'
-
-/**
- * State-machine states
- */
-#define STATE_IDLE 'z'
-#define STATE_1_STEP '1'
-#define STATE_CONTINUOUS 'c'
-#define STATE_POS_1 'q'
-#define STATE_POS_2 'w'
-#define STATE_test 'e'
-#define STATE_TIME_TEST 'r'
-
 #define PI_math (float)3.141592653
 
 template<class T> inline Print& operator <<(Print &obj,     T arg) { obj.print(arg);    return obj; }
 template<>        inline Print& operator <<(Print &obj, float arg) { obj.print(arg, 4); return obj; }
-// template <class T>
-// inline Print &operator<<(Print &obj, T arg)
-// {
-//   obj.print(arg);
-//   return obj;
-// }
-// template <>
-// inline Print &operator<<(Print &obj, float arg)
-// {
-//   obj.print(arg, 4);
-//   return obj;
-// }
+
+const float knee_gearRatio = 1.25;
+const float dimension_a2 = 0.218;
+const float dimension_a3 = 0.230;
+const float dimension_d2 = 0.092;
+const float dimension_length = 0.517;
+const float dimension_width = 0.2;
+
+enum leg_tag
+{
+    tag_FL = 1,
+    tag_FR = 2,
+    tag_BL = 4,
+    tag_BR = 8
+};         
+
+enum loop_state
+{
+  STATE_IDLE = 0,
+  STATE_K_UPDATE = 1,
+  STATE_TIME_TEST = 2,
+  STATE_UPDATE = 3
+};
+
+enum input_mode
+{
+  MODE_END = 0,
+  MODE_CONT = 1
+};
+
+enum motion_task
+{
+  TASK_IDLE = 0,
+  TASK_SHIFT_POSTURE = 1,
+  TASK_SWING_LEG = 2
+};
+
+
+
+
+
+const float msg_timer_interval = 5; // interval between sending msg (millisecond)
+
+#define KNEE_GearRatio 1.25f
+#define DIMENSION_A2 0.218f
+#define DIMENSION_A3 0.230f
+#define DIMENSION_D2 0.092f
+#define DIMENSION_LENGTH 0.517f
+#define DIMENSION_WIDTH 0.2f
+
+long manual_input_num();
+String rdStr();

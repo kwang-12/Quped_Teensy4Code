@@ -1056,7 +1056,7 @@ void ODriveArduino::calibrate_joint(char mode, char axis_tag)
                     while (Serial.available() == 0)
                         ; //do nothing. wait for input
                     String input_level_1 = Serial.readString();
-                    if (input_level_1 == 'y')
+                    if (input_level_1 == "y")
                     {
                         Serial.println("---------------------------------");
                         Serial.print("Current motor position is: ");
@@ -1074,7 +1074,7 @@ void ODriveArduino::calibrate_joint(char mode, char axis_tag)
                                 while (Serial.available() == 0)
                                     ; //do nothing. wait for input
                                 String input_level_2 = Serial.readString();
-                                if (input_level_2 == 'y')
+                                if (input_level_2 == "y")
                                 {
                                     pos_input_confirm = true;
                                 }
@@ -1106,7 +1106,7 @@ void ODriveArduino::calibrate_joint(char mode, char axis_tag)
                                 while (Serial.available() == 0)
                                     ; //do nothing. wait for input
                                 String input_level_2 = Serial.readString();
-                                if (input_level_2 == 'y')
+                                if (input_level_2 == "y")
                                 {
                                     pos_input_confirm = true;
                                 }
@@ -1137,7 +1137,7 @@ void ODriveArduino::calibrate_joint(char mode, char axis_tag)
                     while (Serial.available() == 0)
                         ; //do nothing. wait for input
                     String input_level_1 = Serial.readString();
-                    if (input_level_1 == 'y')
+                    if (input_level_1 == "y")
                     {
                         Serial.println("---------------------------------");
                         Serial.print("Current motor position is: ");
@@ -1155,7 +1155,7 @@ void ODriveArduino::calibrate_joint(char mode, char axis_tag)
                                 while (Serial.available() == 0)
                                     ; //do nothing. wait for input
                                 String input_level_2 = Serial.readString();
-                                if (input_level_2 == 'y')
+                                if (input_level_2 == "y")
                                 {
                                     pos_input_confirm = true;
                                 }
@@ -1187,7 +1187,7 @@ void ODriveArduino::calibrate_joint(char mode, char axis_tag)
                                 while (Serial.available() == 0)
                                     ; //do nothing. wait for input
                                 String input_level_2 = Serial.readString();
-                                if (input_level_2 == 'y')
+                                if (input_level_2 == "y")
                                 {
                                     pos_input_confirm = true;
                                 }
@@ -1223,7 +1223,7 @@ void ODriveArduino::calibrate_joint(char mode, char axis_tag)
                 while (Serial.available() == 0)
                     ; //do nothing. wait for input
                 String input = Serial.readString();
-                while (input != 'y' && input != '1' && input != '2' && input != 'n')
+                while (input != "y" && input != "1" && input != "2" && input != "n")
                 {
                     Serial.println("---------------------------------");
                     Serial.println("Both positions confirmed!");
@@ -1239,7 +1239,7 @@ void ODriveArduino::calibrate_joint(char mode, char axis_tag)
                         ; //do nothing. wait for input
                     input = Serial.readString();
                 }
-                if (input == 'y')
+                if (input == "y")
                 {
                     pos_neutral = (pos_1 + pos_2) / 2;
                     Serial.println(odrv_name_);
@@ -1263,17 +1263,17 @@ void ODriveArduino::calibrate_joint(char mode, char axis_tag)
                         joint_pos.a1_pos_2 = pos_2;
                     }
                 }
-                else if (input == '1')
+                else if (input == "1")
                 {
                     Serial.println("Modifying boundary position 1...");
                     pos_1_confirm = false;
                 }
-                else if (input == '2')
+                else if (input == "2")
                 {
                     Serial.println("Modifying boundary positoin 2...");
                     pos_2_confirm = false;
                 }
-                else if (input == 'n')
+                else if (input == "n")
                 {
                     Serial.println("Redo the process...");
                     pos_1_confirm = false;
@@ -1294,7 +1294,7 @@ void ODriveArduino::calibrate_joint(char mode, char axis_tag)
             while (Serial.available() == 0)
                 ;
             String input_level_1 = Serial.readString();
-            if (input_level_1 == 'y')
+            if (input_level_1 == "y")
             {
                 Serial.println("---------------------------------");
                 Serial.print("Current motor position is: ");
@@ -1312,7 +1312,7 @@ void ODriveArduino::calibrate_joint(char mode, char axis_tag)
                         while (Serial.available() == 0)
                             ;
                         String input_level_2 = Serial.readString();
-                        if (input_level_2 == 'y')
+                        if (input_level_2 == "y")
                         {
                             joint_pos.a0_zero_pos = pos_neutral;
                             pos_input_confirm = true;
@@ -1345,7 +1345,7 @@ void ODriveArduino::calibrate_joint(char mode, char axis_tag)
                         while (Serial.available() == 0)
                             ;
                         String input_level_2 = Serial.readString();
-                        if (input_level_2 == 'y')
+                        if (input_level_2 == "y")
                         {
                             joint_pos.a1_zero_pos = pos_neutral;
                             pos_input_confirm = true;
@@ -1369,6 +1369,16 @@ void ODriveArduino::calibrate_joint(char mode, char axis_tag)
     }
     else if (mode == 'u') //find the neutral position by user input
     {
+        if (axis_tag == axis0_tag_)
+        {
+            Serial.println("Enter a0");
+            joint_pos.a0_zero_pos = manual_input_num();
+        }
+        else
+        {
+            Serial.println("Enter a1");
+            joint_pos.a1_zero_pos = manual_input_num();
+        }
     }
 }
 

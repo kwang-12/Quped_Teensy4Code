@@ -1,0 +1,27 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "C:/Program Files (x86)/Arduino/libraries/**",
+                "C:/Program Files (x86)/Arduino/hardware/teensy/avr/cores/teensy4/**",
+                "C:/Program Files (x86)/Arduino/hardware/teensy/avr/cores/teensy/**",
+                "C:/Program Files (x86)/Arduino/hardware/teensy/avr/libraries/**",
+                "C:/Program Files (x86)/Arduino/hardware/arduino/avr/cores/arduino/**",
+                "C:/Users/shuib/Documents/Arduino/libraries/**"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "windowsSdkVersion": "10.0.18362.0",
+            "compilerPath": "C:/Program Files (x86)/Arduino/hardware/tools/avr/bin/avr-gcc.exe",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "${default}"
+        }
+    ],
+    "version": 4
+}

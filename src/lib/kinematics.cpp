@@ -1,603 +1,669 @@
 #include "kinematics.h"
 
-void leg_forwardKinematics_pos(float ab_deg_now, float hip_deg_now, float knee_deg_now,
-                               float &x_calculated, float &y_calculated, float &z_calculated,
-                               char leg_choice)
+kinematics::kinematics(float margin_, float posture_time_span_, float swing_time_span_,
+                       float body_height, float leg_pos_offset_forward_, float leg_pos_offset_horizontal_,
+                       float max_FWD, float max_HZT, float max_HGT,
+                       float max_YAW)
 {
-    float a2 = DIMENSION_A2;
-    float a3 = DIMENSION_A3;
-    float d2 = DIMENSION_D2;
-    switch (leg_choice)
-    {
-    case FRONT_LEFT_LEG:
-    {
-        x_calculated = -d2 * sin(ab_deg_now) + cos(ab_deg_now) * (a3 * cos(hip_deg_now - knee_deg_now) + a2 * cos(hip_deg_now));
-        y_calculated = d2 * cos(ab_deg_now) + sin(ab_deg_now) * (a3 * cos(hip_deg_now - knee_deg_now) + a2 * cos(hip_deg_now));
-        z_calculated = -a3 * sin(hip_deg_now - knee_deg_now) - a2 * sin(hip_deg_now);
-    }
-    break;
-    case FRONT_RIGHT_LEG:
-    {
-        x_calculated = d2 * sin(ab_deg_now) + cos(ab_deg_now) * (a3 * cos(hip_deg_now - knee_deg_now) + a2 * cos(hip_deg_now));
-        y_calculated = -d2 * cos(ab_deg_now) + sin(ab_deg_now) * (a3 * cos(hip_deg_now - knee_deg_now) + a2 * cos(hip_deg_now));
-        z_calculated = a3 * sin(hip_deg_now - knee_deg_now) + a2 * sin(hip_deg_now);
-    }
-    break;
-    case BACK_LEFT_LEG:
-    {
-        x_calculated = d2 * sin(ab_deg_now) + cos(ab_deg_now) * (a3 * cos(hip_deg_now - knee_deg_now) + a2 * cos(hip_deg_now));
-        y_calculated = -d2 * cos(ab_deg_now) + sin(ab_deg_now) * (a3 * cos(hip_deg_now - knee_deg_now) + a2 * cos(hip_deg_now));
-        z_calculated = a3 * sin(hip_deg_now - knee_deg_now) + a2 * sin(hip_deg_now);
-    }
-    break;
-    case BACK_RIGHT_LEG:
-    {
-        x_calculated = -d2 * sin(ab_deg_now) + cos(ab_deg_now) * (a3 * cos(hip_deg_now - knee_deg_now) + a2 * cos(hip_deg_now));
-        y_calculated = d2 * cos(ab_deg_now) + sin(ab_deg_now) * (a3 * cos(hip_deg_now - knee_deg_now) + a2 * cos(hip_deg_now));
-        z_calculated = -a3 * sin(hip_deg_now - knee_deg_now) - a2 * sin(hip_deg_now);
-    }
-    break;
-    }
+    FL.init(tag_FL, body_height, leg_pos_offset_forward_, leg_pos_offset_horizontal_);
+    FR.init(tag_FR, body_height, leg_pos_offset_forward_, leg_pos_offset_horizontal_);
+    BL.init(tag_BL, body_height, leg_pos_offset_forward_, leg_pos_offset_horizontal_);
+    BR.init(tag_BR, body_height, leg_pos_offset_forward_, leg_pos_offset_horizontal_);
+    pos_now.update(0, 0, body_height, 0, 0, 0, FL, FR, BL, BR);
+
+    margin = margin_;
+    posture_time_span = posture_time_span_;
+    leg_swing_time_span = swing_time_span_;
+    leg_swing_forward_max = max_FWD;
+    leg_swing_horizontal_max = max_HZT;
+    leg_swing_height = max_HGT;
+    leg_swing_yaw_max = max_YAW;
+    leg_pos_offset_forward = leg_pos_offset_forward_;
+    leg_pos_offset_horizontal = leg_pos_offset_horizontal_;
 }
 
-bool leg_inverseKinematics_pos(float ab_deg_now, float hip_deg_now, float knee_deg_now,
-                               float x_desired, float y_desired, float z_desired,
-                               float &ab_deg_desired, float &hip_deg_desired, float &knee_deg_desired,
-                               char leg_choice)
+void kinematics::reset()
 {
-    float a2 = DIMENSION_A2;
-    float a3 = DIMENSION_A3;
-    float d2 = DIMENSION_D2;
-    float cost[8];
-    float theta_1[8] = {0,0,0,0,0,0,0,0};
-    float theta_2[8] = {0,0,0,0,0,0,0,0};
-    float theta_3[8] = {0,0,0,0,0,0,0,0};
-    int index[8] = {0,0,0,0,0,0,0,0};
-    bool in_workspace_[8] = {true, true, true, true, true, true, true, true};
-    int loop_counter = 0;
-    switch (leg_choice)
+    FL.init(tag_FL, 0.35, leg_pos_offset_forward, leg_pos_offset_horizontal);
+    FR.init(tag_FR, 0.35, leg_pos_offset_forward, leg_pos_offset_horizontal);
+    BL.init(tag_BL, 0.35, leg_pos_offset_forward, leg_pos_offset_horizontal);
+    BR.init(tag_BR, 0.35, leg_pos_offset_forward, leg_pos_offset_horizontal);
+    pos_now.update(0, 0, 0.35, 0, 0, 0, FL, FR, BL, BR);
+    kinematic_task = TASK_IDLE;
+    kinematic_mode = MODE_END;
+    yaw_ini_flag = false;
+    leg_swing_choice = tag_FL;
+    posture_val_set = false;
+    posture_neutral_request = false;
+}
+
+void kinematics::calc_input(radio radio_readings)
+{
+    input.x_target = leg_swing_forward_max * radio_readings.ch_1.val;
+    input.y_target = leg_swing_horizontal_max * radio_readings.ch_2.val;
+    input.yaw_target = leg_swing_yaw_max * radio_readings.ch_4.val;
+    if ((kinematic_task == TASK_IDLE) & ((radio_readings.ch_1.val != 0) || (radio_readings.ch_2.val != 0) || (radio_readings.ch_4.val != 0)))
     {
-    case FRONT_LEFT_LEG:
-    {
-        for (int i = 0; i <= 1; i++)
-        {
-            for (int j = 0; j <= 1; j++)
-            {
-                for (int k = 0; k <= 1; k++)
-                {
-                    // determine theta_3
-                    float c3 = (pow(x_desired, 2) + pow(y_desired, 2) + pow(z_desired, 2) - pow(d2, 2) - pow(a2, 2) - pow(a3, 2)) / (2 * a2 * a3);
-                    float square_c3 = pow(c3, 2);
-                    if (square_c3 <= 1)
-                    {
-                        if (i == 0)
-                        {
-                            theta_3[loop_counter] = atan2(sqrt(1 - square_c3), c3);
-                        }
-                        else
-                        {
-                            theta_3[loop_counter] = atan2(-sqrt(1 - square_c3), c3);
-                        }
-                    }
-                    else
-                    {
-                        in_workspace_[loop_counter] = false;
-                    }
-                    // determine theta_2
-                    if (in_workspace_[loop_counter] == true)
-                    {
-                        float a = a3 * sin(theta_3[loop_counter]);
-                        float b = -a3 * cos(theta_3[loop_counter]) - a2;
-                        float c = z_desired;
-                        float arg = pow(a, 2) + pow(b, 2) - pow(c, 2);
-                        if (arg >= 0)
-                        {
-                            if (j == 0)
-                            {
-                                theta_2[loop_counter] = atan2(sqrt(arg), c) + atan2(b, a);
-                            }
-                            else
-                            {
-                                theta_2[loop_counter] = atan2(-sqrt(arg), c) + atan2(b, a);
-                            }
-                        }
-                        else
-                        {
-                            in_workspace_[loop_counter] = false;
-                        }
-                        // determine theta_1
-                        if (in_workspace_[loop_counter] == true)
-                        {
-                            a = a2 * cos(theta_2[loop_counter]) + a3 * cos(theta_2[loop_counter] - theta_3[loop_counter]);
-                            b = -d2;
-                            c = x_desired;
-                            arg = pow(a, 2) + pow(b, 2) - pow(c, 2);
-                            if (arg >= 0)
-                            {
-                                if (k == 0)
-                                {
-                                    theta_1[loop_counter] = atan2(sqrt(arg), c) + atan2(b, a);
-                                }
-                                else
-                                {
-                                    theta_1[loop_counter] = atan2(-sqrt(arg), c) + atan2(b, a);
-                                }
-                            }
-                            else
-                            {
-                                in_workspace_[loop_counter] = false;
-                            }
-                        }
-                    }
-                    loop_counter++;
-                }
-            }
-        }
+        kinematic_task = TASK_SHIFT_POSTURE;
     }
-    break;
-    case FRONT_RIGHT_LEG:
+    if ((radio_readings.ch_1.val == 0) & (radio_readings.ch_2.val == 0) & (radio_readings.ch_4.val == 0))
     {
-        for (int i = 0; i <= 1; i++)
-        {
-            for (int j = 0; j <= 1; j++)
-            {
-                for (int k = 0; k <= 1; k++)
-                {
-                    // determine theta_3
-                    float c3 = (pow(x_desired, 2) + pow(y_desired, 2) + pow(z_desired, 2) - pow(d2, 2) - pow(a2, 2) - pow(a3, 2)) / (2 * a2 * a3);
-                    float square_c3 = pow(c3, 2);
-                    if (square_c3 <= 1)
-                    {
-                        if (i == 0)
-                        {
-                            theta_3[loop_counter] = atan2(sqrt(1 - square_c3), c3);
-                        }
-                        else
-                        {
-                            theta_3[loop_counter] = atan2(-sqrt(1 - square_c3), c3);
-                        }
-                    }
-                    else
-                    {
-                        in_workspace_[loop_counter] = false;
-                    }
-                    // determine theta_2
-                    if (in_workspace_[loop_counter] == true)
-                    {
-                        float a = -a3 * sin(theta_3[loop_counter]);
-                        float b = a3 * cos(theta_3[loop_counter]) + a2;
-                        float c = z_desired;
-                        float arg = pow(a, 2) + pow(b, 2) - pow(c, 2);
-                        if (arg >= 0)
-                        {
-                            if (j == 0)
-                            {
-                                theta_2[loop_counter] = atan2(sqrt(arg), c) + atan2(b, a);
-                            }
-                            else
-                            {
-                                theta_2[loop_counter] = atan2(-sqrt(arg), c) + atan2(b, a);
-                            }
-                        }
-                        else
-                        {
-                            in_workspace_[loop_counter] = false;
-                        }
-                        // determine theta_1
-                        if (in_workspace_[loop_counter] == true)
-                        {
-                            a = a2 * cos(theta_2[loop_counter]) + a3 * cos(theta_2[loop_counter] - theta_3[loop_counter]);
-                            b = d2;
-                            c = x_desired;
-                            arg = pow(a, 2) + pow(b, 2) - pow(c, 2);
-                            if (arg >= 0)
-                            {
-                                if (k == 0)
-                                {
-                                    theta_1[loop_counter] = atan2(sqrt(arg), c) + atan2(b, a);
-                                }
-                                else
-                                {
-                                    theta_1[loop_counter] = atan2(-sqrt(arg), c) + atan2(b, a);
-                                }
-                            }
-                            else
-                            {
-                                in_workspace_[loop_counter] = false;
-                            }
-                        }
-                    }
-                    loop_counter++;
-                }
-            }
-        }
-    }
-    break;
-    case BACK_LEFT_LEG:
-    {
-        for (int i = 0; i <= 1; i++)
-        {
-            for (int j = 0; j <= 1; j++)
-            {
-                for (int k = 0; k <= 1; k++)
-                {
-                    // determine theta_3
-                    float c3 = (pow(x_desired, 2) + pow(y_desired, 2) + pow(z_desired, 2) - pow(d2, 2) - pow(a2, 2) - pow(a3, 2)) / (2 * a2 * a3);
-                    float square_c3 = pow(c3, 2);
-                    if (square_c3 <= 1)
-                    {
-                        if (i == 0)
-                        {
-                            theta_3[loop_counter] = atan2(sqrt(1 - square_c3), c3);
-                        }
-                        else
-                        {
-                            theta_3[loop_counter] = atan2(-sqrt(1 - square_c3), c3);
-                        }
-                    }
-                    else
-                    {
-                        in_workspace_[loop_counter] = false;
-                    }
-                    // determine theta_2
-                    if (in_workspace_[loop_counter] == true)
-                    {
-                        float a = -a3 * sin(theta_3[loop_counter]);
-                        float b = a3 * cos(theta_3[loop_counter]) + a2;
-                        float c = z_desired;
-                        float arg = pow(a, 2) + pow(b, 2) - pow(c, 2);
-                        if (arg >= 0)
-                        {
-                            if (j == 0)
-                            {
-                                theta_2[loop_counter] = atan2(sqrt(arg), c) + atan2(b, a);
-                            }
-                            else
-                            {
-                                theta_2[loop_counter] = atan2(-sqrt(arg), c) + atan2(b, a);
-                            }
-                        }
-                        else
-                        {
-                            in_workspace_[loop_counter] = false;
-                        }
-                        // determine theta_1
-                        if (in_workspace_[loop_counter] == true)
-                        {
-                            a = a2 * cos(theta_2[loop_counter]) + a3 * cos(theta_2[loop_counter] - theta_3[loop_counter]);
-                            b = d2;
-                            c = x_desired;
-                            arg = pow(a, 2) + pow(b, 2) - pow(c, 2);
-                            if (arg >= 0)
-                            {
-                                if (k == 0)
-                                {
-                                    theta_1[loop_counter] = atan2(sqrt(arg), c) + atan2(b, a);
-                                }
-                                else
-                                {
-                                    theta_1[loop_counter] = atan2(-sqrt(arg), c) + atan2(b, a);
-                                }
-                            }
-                            else
-                            {
-                                in_workspace_[loop_counter] = false;
-                            }
-                        }
-                    }
-                    loop_counter++;
-                }
-            }
-        }
-    }
-    break;
-    case BACK_RIGHT_LEG:
-    {
-        for (int i = 0; i <= 1; i++)
-        {
-            for (int j = 0; j <= 1; j++)
-            {
-                for (int k = 0; k <= 1; k++)
-                {
-                    // determine theta_3
-                    float c3 = (pow(x_desired, 2) + pow(y_desired, 2) + pow(z_desired, 2) - pow(d2, 2) - pow(a2, 2) - pow(a3, 2)) / (2 * a2 * a3);
-                    float square_c3 = pow(c3, 2);
-                    if (square_c3 <= 1)
-                    {
-                        if (i == 0)
-                        {
-                            theta_3[loop_counter] = atan2(sqrt(1 - square_c3), c3);
-                        }
-                        else
-                        {
-                            theta_3[loop_counter] = atan2(-sqrt(1 - square_c3), c3);
-                        }
-                    }
-                    else
-                    {
-                        in_workspace_[loop_counter] = false;
-                    }
-                    // determine theta_2
-                    if (in_workspace_[loop_counter] == true)
-                    {
-                        float a = a3 * sin(theta_3[loop_counter]);
-                        float b = -a3 * cos(theta_3[loop_counter]) - a2;
-                        float c = z_desired;
-                        float arg = pow(a, 2) + pow(b, 2) - pow(c, 2);
-                        if (arg >= 0)
-                        {
-                            if (j == 0)
-                            {
-                                theta_2[loop_counter] = atan2(sqrt(arg), c) + atan2(b, a);
-                            }
-                            else
-                            {
-                                theta_2[loop_counter] = atan2(-sqrt(arg), c) + atan2(b, a);
-                            }
-                        }
-                        else
-                        {
-                            in_workspace_[loop_counter] = false;
-                        }
-                        // determine theta_1
-                        if (in_workspace_[loop_counter] == true)
-                        {
-                            a = a2 * cos(theta_2[loop_counter]) + a3 * cos(theta_2[loop_counter] - theta_3[loop_counter]);
-                            b = -d2;
-                            c = x_desired;
-                            arg = pow(a, 2) + pow(b, 2) - pow(c, 2);
-                            if (arg >= 0)
-                            {
-                                if (k == 0)
-                                {
-                                    theta_1[loop_counter] = atan2(sqrt(arg), c) + atan2(b, a);
-                                }
-                                else
-                                {
-                                    theta_1[loop_counter] = atan2(-sqrt(arg), c) + atan2(b, a);
-                                }
-                            }
-                            else
-                            {
-                                in_workspace_[loop_counter] = false;
-                            }
-                        }
-                    }
-                    loop_counter++;
-                }
-            }
-        }
-    }
-    break;
-    }
-
-    // exclude the useless calculated joint positions that are not in the workspace
-    loop_counter = 0;
-    for (int i = 0; i <= 7; i++)
-    {
-        if (in_workspace_[i] == true)
-        {
-            index[loop_counter] = i;
-            loop_counter++;
-        }
-    }
-    int num_valid = loop_counter;
-
-    Serial.print(ab_deg_now);
-    Serial.print(" ");
-    Serial.print(hip_deg_now);
-    Serial.print(" ");
-    Serial.print(knee_deg_now);
-    Serial.print(" ");
-    Serial.print(x_desired);
-    Serial.print(" ");
-    Serial.print(y_desired);
-    Serial.print(" ");
-    Serial.print(z_desired);
-    Serial.print(" ");
-    Serial.println(leg_choice);
-
-
-    Serial.println(num_valid);
-
-    Serial.print(theta_1[0]);
-    Serial.print(" ");
-    Serial.print(theta_2[0]);
-    Serial.print(" ");
-    Serial.print(theta_3[0]);
-    Serial.print(" ");
-    Serial.println(in_workspace_[0]);
-
-    Serial.print(theta_1[1]);
-    Serial.print(" ");
-    Serial.print(theta_2[1]);
-    Serial.print(" ");
-    Serial.print(theta_3[1]);
-    Serial.print(" ");
-    Serial.println(in_workspace_[1]);
-
-    Serial.print(theta_1[2]);
-    Serial.print(" ");
-    Serial.print(theta_2[2]);
-    Serial.print(" ");
-    Serial.print(theta_3[2]);
-    Serial.print(" ");
-    Serial.println(in_workspace_[2]);
-
-    Serial.print(theta_1[3]);
-    Serial.print(" ");
-    Serial.print(theta_2[3]);
-    Serial.print(" ");
-    Serial.print(theta_3[3]);
-    Serial.print(" ");
-    Serial.println(in_workspace_[3]);
-
-    Serial.print(theta_1[4]);
-    Serial.print(" ");
-    Serial.print(theta_2[4]);
-    Serial.print(" ");
-    Serial.print(theta_3[4]);
-    Serial.print(" ");
-    Serial.println(in_workspace_[4]);
-
-    Serial.print(theta_1[5]);
-    Serial.print(" ");
-    Serial.print(theta_2[5]);
-    Serial.print(" ");
-    Serial.print(theta_3[5]);
-    Serial.print(" ");
-    Serial.println(in_workspace_[5]);
-
-    Serial.print(theta_1[6]);
-    Serial.print(" ");
-    Serial.print(theta_2[6]);
-    Serial.print(" ");
-    Serial.print(theta_3[6]);
-    Serial.print(" ");
-    Serial.println(in_workspace_[6]);
-
-    Serial.print(theta_1[7]);
-    Serial.print(" ");
-    Serial.print(theta_2[7]);
-    Serial.print(" ");
-    Serial.print(theta_3[7]);
-    Serial.print(" ");
-    Serial.println(in_workspace_[7]);
-    Serial.println("=========");
-
-    if (num_valid > 0)
-    {
-        // calculate the cost of the valid calculated desired location, the set with the lowest cost is chosen as the output
-        // cost function is defined as:
-        // cost = EuclideanNorm(desired_cartesian_pos - calculated_cartesian_pos) * 0.8 + EuclideanNorm(current_joint_position - calculated_joint_position) * 0.2
-        for (int i = 0; i <= num_valid - 1; i++)
-        {
-            float x, y, z;
-            leg_forwardKinematics_pos(theta_1[index[i]], theta_2[index[i]], theta_3[index[i]], x, y, z, leg_choice);
-            float opSpace_cost = 0.99 * sqrt(pow(x - x_desired, 2) + pow(y - y_desired, 2) + pow(z - z_desired, 2));
-            float jtSpace_cost = 0.01 * sqrt(pow(theta_1[index[i]] - ab_deg_now, 2) + pow(theta_2[index[i]] - hip_deg_now, 2) + pow(theta_3[index[i]] - knee_deg_now, 2));
-            cost[i] = opSpace_cost + jtSpace_cost;
-            
-            // Serial.print(theta_1[index[i]] / PI_math * 180);
-            // Serial.print(" ");
-            // Serial.print(theta_2[index[i]] / PI_math * 180);
-            // Serial.print(" ");
-            // Serial.println(theta_3[index[i]] / PI_math * 180);
-
-            // Serial.print(ab_deg_now / PI_math * 180);
-            // Serial.print(" ");
-            // Serial.print(hip_deg_now / PI_math * 180);
-            // Serial.print(" ");
-            // Serial.println(knee_deg_now / PI_math * 180);
-
-            // Serial.print(opSpace_cost, 4);
-            // Serial.print(" ");
-            // Serial.print(jtSpace_cost, 4);
-            // Serial.print(" ");
-            // Serial.println(cost[i], 4);
-            // Serial.println("-----------");
-        }
-        loop_counter = 0;
-        float smallest_cost = 100;
-        for (int i = 0; i <= num_valid - 1; i++)
-        {
-            if (cost[i] < smallest_cost)
-            {
-                smallest_cost = cost[i];
-                loop_counter = i;
-            }
-        }
-        ab_deg_desired = theta_1[index[loop_counter]];
-        hip_deg_desired = theta_2[index[loop_counter]];
-        knee_deg_desired = theta_3[index[loop_counter]];
-        return true;
+        kinematic_mode = MODE_END;
     }
     else
     {
-        ab_deg_desired = 0;
-        hip_deg_desired = 0;
-        knee_deg_desired = 0;
-        return false;
+        kinematic_mode = MODE_CONT;
     }
 }
 
-bool calc_posture_joint_pos(float yaw_desired, float pitch_desired, float roll_desired,
-                            float forward_delta, float horizontal_delta, float vertical_delta,
-                            float &FL_ab, float &FL_hip, float &FL_knee, bool FL_support, 
-                            float &FR_ab, float &FR_hip, float &FR_knee, bool FR_support, 
-                            float &BR_ab, float &BR_hip, float &BR_knee, bool BL_support, 
-                            float &BL_ab, float &BL_hip, float &BL_knee, bool BR_support)
+void kinematics::update_posture()
 {
-    float Sx = sin(roll_desired);
-    float Cx = cos(roll_desired);
-    float Sy = sin(pitch_desired);
-    float Cy = cos(pitch_desired);
-    float Sz = sin(yaw_desired);
-    float Cz = cos(yaw_desired);
-    bool FL_inworkspace = true;
-    bool FR_inworkspace = true;
-    bool BL_inworkspace = true;
-    bool BR_inworkspace = true;
+    Point p, q, r, s;
+    p = {pos_now.tX_Ground2FL_end(0, 3), pos_now.tX_Ground2FL_end(1, 3)};
+    q = {pos_now.tX_Ground2FR_end(0, 3), pos_now.tX_Ground2FR_end(1, 3)};
+    r = {pos_now.tX_Ground2BR_end(0, 3), pos_now.tX_Ground2BR_end(1, 3)};
+    s = {pos_now.tX_Ground2BL_end(0, 3), pos_now.tX_Ground2BL_end(1, 3)};
 
-    BLA::Matrix<4, 4> T_ground2body = {Cy * Cz, Cz * Sx * Sy - Cx * Sz, Sx * Sz + Cx * Cz * Sy, forward_delta,
-                                       Cy * Sz, Cx * Cz + Sx * Sy * Sz, Cx * Sy * Sz - Cz * Sx, horizontal_delta,
-                                       -Sy, Cy * Sx, Cx * Cy, vertical_delta+T_ground2body_default(2,3),
-                                       0, 0, 0, 1};
-    if (FL_support)
+    pos_ini.forward = pos_now.forward;
+    pos_ini.horizontal = pos_now.horizontal;
+    pos_ini.height = pos_now.height;
+    pos_ini.yaw = pos_now.yaw;
+    pos_ini.pitch = pos_now.pitch;
+    pos_ini.roll = pos_now.roll;
+
+    pos_end.height = pos_ini.height;
+    pos_end.pitch = pos_ini.pitch;
+    pos_end.roll = pos_ini.roll;
+
+    if (gait == 1423)
     {
-        BLA::Matrix<4, 4> T_ground2FLab = T_ground2body * T_body2FLab;
-        BLA::Matrix<4> temp = T_ground2FLab.Inverse() * P_ground2FLend;
-        FL_inworkspace = leg_inverseKinematics_pos(AB_STANDBY_POS_DEG / 180 * PI_math, HIP_STANDBY_POS_DEG / 180 * PI_math, KNEE_STANDBY_POS_DEG / 180 * PI_math,
-                                                   temp(0), temp(1), temp(2),
-                                                   FL_ab, FL_hip, FL_knee,
-                                                   FRONT_LEFT_LEG);
-        Serial.print(FL_ab / PI_math * 180);
-        Serial.print(" ");
-        Serial.print(FL_hip / PI_math * 180);
-        Serial.print(" ");
-        Serial.println(FL_knee / PI_math * 180);
+        if (posture_neutral_request == false) // shift posture based on gait choice
+        {
+            if (FL.swing_complete == false)
+            {
+                if (yaw_ini_flag == false)
+                {
+                    // At the beginning of the gait cycle:
+                    // Calculate desired body posture by the end of the gait cycle
+                    // current body posture transformation (relative to ground)
+                    Point poly_2[] = {p, q, r, s};
+                    int poly_2_n = 4;
+                    Point centroid = calc_newCOB(p, q, r, s, poly_2, poly_2_n, -1);
+                    BLA::Matrix<4, 1> position = {centroid.x, centroid.y, pos_now.height, 1};
+                    BLA::Matrix<4, 4> t1 = pos_now.tX_Ground2Body.Submatrix(BLA::Slice<0,4>(),BLA::Slice<0,3>()) || position;
+                    // initialize yaw target for the gait cycle
+                    yaw_target = input.yaw_target;
+                    // desired body posture transformation (relative to body)
+                    float Sx = sin(0);
+                    float Cx = cos(0);
+                    float Sy = sin(0);
+                    float Cy = cos(0);
+                    float Sz = sin(yaw_target);
+                    float Cz = cos(yaw_target);
+                    BLA::Matrix<4, 3> tx_R = {Cy * Cz, Cz * Sx * Sy - Cx * Sz, Sx * Sz + Cx * Cz * Sy,
+                                            Cy * Sz, Cx * Cz + Sx * Sy * Sz, Cx * Sy * Sz - Cz * Sx,
+                                            -Sy, Cy * Sx, Cx * Cy,
+                                            0, 0, 0};
+                    BLA::Matrix<4, 1> tx_P = {input.x_target, input.y_target, 0, 1};
+                    BLA::Matrix<4, 4> tx = tx_R || tx_P;
+
+                    BLA::Multiply(t1, tx, Target);
+
+                    yaw_ini_flag = true;
+                }
+                Point poly[] = {q, r, s};
+                int poly_n = 3;
+                Point new_COB = calc_newCOB(p, r, q, s, poly, poly_n, margin);
+                // Point new_COB = calc_newCOB(q, s, poly, poly_n, margin);
+                // Point new_COB = calc_newCOB(q, s, poly, poly_n, -1);
+                pos_end.forward = new_COB.x;
+                pos_end.horizontal = new_COB.y;
+            }
+            else if (BR.swing_complete == false)
+            {
+                Point poly[] = {p, q, s};
+                int poly_n = 3;
+                Point new_COB = calc_newCOB(r, p, q, s, poly, poly_n, margin);
+                // Point new_COB = calc_newCOB(q, s, poly, poly_n, margin);
+                // Point new_COB = calc_newCOB(q, s, poly, poly_n, -1);
+                pos_end.forward = new_COB.x;
+                pos_end.horizontal = new_COB.y;
+            }
+            else if (FR.swing_complete == false)
+            {
+                Point poly[] = {p, r, s};
+                int poly_n = 3;
+                Point new_COB = calc_newCOB(q, s, p, r, poly, poly_n, margin);
+                // Point new_COB = calc_newCOB(p, r, poly, poly_n, margin);
+                // Point new_COB = calc_newCOB(p, r, poly, poly_n, -1);
+                pos_end.forward = new_COB.x;
+                pos_end.horizontal = new_COB.y;
+            }
+            else if (BL.swing_complete == false)
+            {
+                Point poly[] = {p, q, r};
+                int poly_n = 3;
+                Point new_COB = calc_newCOB(s, q, p, r, poly, poly_n, margin);
+                // Point new_COB = calc_newCOB(p, r, poly, poly_n, margin);
+                // Point new_COB = calc_newCOB(p, r, poly, poly_n, -1);
+                pos_end.forward = new_COB.x;
+                pos_end.horizontal = new_COB.y;
+            }
+            if (fabs(yaw_target) < 0.0000000001)
+            {
+                pos_end.yaw = pos_ini.yaw;
+            }
+            else
+            {
+                pos_end.yaw = yaw_target * 0.25 + pos_ini.yaw;
+            }
+        }
+        else // move to neutral position
+        {
+            Point poly[] = {p, q, r, s};
+            int poly_n = 4;
+            Point centroid = calc_newCOB(r, s, p, q, poly, poly_n, -1);
+            pos_end.forward = centroid.x;
+            pos_end.horizontal = centroid.y;
+            pos_end.yaw = pos_ini.yaw;
+        }
     }
-    if (FR_support)
+}
+
+void kinematics::update_swing()
+{
+    if (leg_swing_choice == tag_FL)
     {
-        BLA::Matrix<4, 4> T_ground2FRab = T_ground2body * T_body2FRab;
-        BLA::Matrix<4> temp = T_ground2FRab.Inverse() * P_ground2FRend;
-        FR_inworkspace = leg_inverseKinematics_pos(-AB_STANDBY_POS_DEG / 180 * PI_math, -HIP_STANDBY_POS_DEG / 180 * PI_math, -KNEE_STANDBY_POS_DEG / 180 * PI_math,
-                                                   temp(0), temp(1), temp(2),
-                                                   FR_ab, FR_hip, FR_knee,
-                                                   FRONT_RIGHT_LEG);
-        Serial.print(FR_ab / PI_math * 180);
-        Serial.print(" ");
-        Serial.print(FR_hip / PI_math * 180);
-        Serial.print(" ");
-        Serial.println(FR_knee / PI_math * 180);
+        leg_pos_ini = {pos_now.tX_Ground2FL_end(0,3),pos_now.tX_Ground2FL_end(1,3),pos_now.tX_Ground2FL_end(2,3)};
+        BLA::Matrix<4,1> pos = {pos_now.height,dimension_d2+leg_pos_offset_horizontal,leg_pos_offset_forward,1};
+        BLA::Matrix<4,1> P_G_leg_end= Target * tX_body2FLab * pos;
+        leg_pos_end = {P_G_leg_end(0), P_G_leg_end(1), P_G_leg_end(2)};
     }
-    if (BL_support)
+    else if (leg_swing_choice == tag_FR)
     {
-        BLA::Matrix<4, 4> T_ground2BLab = T_ground2body * T_body2BLab;
-        BLA::Matrix<4> temp = T_ground2BLab.Inverse() * P_ground2BLend;
-        BL_inworkspace = leg_inverseKinematics_pos(-AB_STANDBY_POS_DEG / 180 * PI_math, HIP_STANDBY_POS_DEG / 180 * PI_math, KNEE_STANDBY_POS_DEG / 180 * PI_math,
-                                                   temp(0), temp(1), temp(2),
-                                                   BL_ab, BL_hip, BL_knee,
-                                                   BACK_LEFT_LEG);
-        Serial.print(BL_ab / PI_math * 180);
-        Serial.print(" ");
-        Serial.print(BL_hip / PI_math * 180);
-        Serial.print(" ");
-        Serial.println(BL_knee / PI_math * 180);
+        leg_pos_ini = {pos_now.tX_Ground2FR_end(0,3),pos_now.tX_Ground2FR_end(1,3),pos_now.tX_Ground2FR_end(2,3)};
+        BLA::Matrix<4,1> pos = {pos_now.height,-dimension_d2-leg_pos_offset_horizontal,leg_pos_offset_forward,1};
+        BLA::Matrix<4,1> P_G_leg_end= Target * tX_body2FRab * pos;
+        leg_pos_end = {P_G_leg_end(0), P_G_leg_end(1), P_G_leg_end(2)};
     }
-    if (BR_support)
+    else if (leg_swing_choice == tag_BL)
     {
-        BLA::Matrix<4, 4> T_ground2BRab = T_ground2body * T_body2BRab;
-        BLA::Matrix<4> temp = T_ground2BRab.Inverse() * P_ground2BRend;
-        BR_inworkspace = leg_inverseKinematics_pos(AB_STANDBY_POS_DEG / 180 * PI_math, -HIP_STANDBY_POS_DEG / 180 * PI_math, -KNEE_STANDBY_POS_DEG / 180 * PI_math,
-                                                   temp(0), temp(1), temp(2),
-                                                   BR_ab, BR_hip, BR_knee,
-                                                   BACK_RIGHT_LEG);
-        Serial.print(BR_ab / PI_math * 180);
-        Serial.print(" ");
-        Serial.print(BR_hip / PI_math * 180);
-        Serial.print(" ");
-        Serial.println(BR_knee / PI_math * 180);
+        leg_pos_ini = {pos_now.tX_Ground2BL_end(0,3),pos_now.tX_Ground2BL_end(1,3),pos_now.tX_Ground2BL_end(2,3)};
+        BLA::Matrix<4,1> pos = {pos_now.height,-dimension_d2-leg_pos_offset_horizontal,leg_pos_offset_forward,1};
+        BLA::Matrix<4,1> P_G_leg_end= Target * tX_body2BLab * pos;
+        leg_pos_end = {P_G_leg_end(0), P_G_leg_end(1), P_G_leg_end(2)};
     }
-    return FL_inworkspace & FR_inworkspace & BL_inworkspace & BR_inworkspace;
+    else if (leg_swing_choice == tag_BR)
+    {
+        leg_pos_ini = {pos_now.tX_Ground2BR_end(0,3),pos_now.tX_Ground2BR_end(1,3),pos_now.tX_Ground2BR_end(2,3)};
+        BLA::Matrix<4,1> pos = {pos_now.height,dimension_d2+leg_pos_offset_horizontal,leg_pos_offset_forward,1};
+        BLA::Matrix<4,1> P_G_leg_end= Target * tX_body2BRab * pos;
+        leg_pos_end = {P_G_leg_end(0), P_G_leg_end(1), P_G_leg_end(2)};
+    }
+}
+
+void kinematics::swing_iK(leg_pos desired_leg_pos)
+{
+    BLA::Matrix<4,1> P_G_leg_end = {desired_leg_pos.x,desired_leg_pos.y,desired_leg_pos.z,1};
+    if (leg_swing_choice == tag_FL)
+    {
+        BLA::Matrix<4,1> temp = pos_now.tX_Ground2FL_ab.Inverse() * P_G_leg_end;
+        FL.leg_inverseKinematics_pos(FL.ab_rad, FL.hip_rad, FL.knee_rad,
+                                     temp(0),temp(1),temp(2),
+                                     FL.ab_rad, FL.hip_rad, FL.knee_rad);
+        FL.update(FL.ab_rad,FL.hip_rad,FL.knee_rad);
+    }
+    else if (leg_swing_choice == tag_FR)
+    {
+        BLA::Matrix<4,1> temp = pos_now.tX_Ground2FR_ab.Inverse() * P_G_leg_end;
+        FR.leg_inverseKinematics_pos(FR.ab_rad, FR.hip_rad, FR.knee_rad,
+                                     temp(0),temp(1),temp(2),
+                                     FR.ab_rad, FR.hip_rad, FR.knee_rad);
+        FR.update(FR.ab_rad,FR.hip_rad,FR.knee_rad);
+    }
+    else if (leg_swing_choice == tag_BL)
+    {
+        BLA::Matrix<4,1> temp = pos_now.tX_Ground2BL_ab.Inverse() * P_G_leg_end;
+        BL.leg_inverseKinematics_pos(BL.ab_rad, BL.hip_rad, BL.knee_rad,
+                                     temp(0),temp(1),temp(2),
+                                     BL.ab_rad, BL.hip_rad, BL.knee_rad);
+        BL.update(BL.ab_rad,BL.hip_rad,BL.knee_rad);
+    }
+    else if (leg_swing_choice == tag_BR)
+    {
+        BLA::Matrix<4,1> temp = pos_now.tX_Ground2BR_ab.Inverse() * P_G_leg_end;
+        BR.leg_inverseKinematics_pos(BR.ab_rad, BR.hip_rad, BR.knee_rad,
+                                     temp(0),temp(1),temp(2),
+                                     BR.ab_rad, BR.hip_rad, BR.knee_rad);
+        BR.update(BR.ab_rad,BR.hip_rad,BR.knee_rad);
+    }
+    pos_now.update(pos_now.forward, pos_now.horizontal, pos_now.height,
+                   pos_now.yaw, pos_now.pitch, pos_now.roll,
+                   FL, FR, BL, BR);
+}
+
+void kinematics::body_iK(body_simp desired_posture)
+{
+    float Sx = sin(desired_posture.roll);
+    float Cx = cos(desired_posture.roll);
+    float Sy = sin(desired_posture.pitch);
+    float Cy = cos(desired_posture.pitch);
+    float Sz = sin(desired_posture.yaw);
+    float Cz = cos(desired_posture.yaw);
+    BLA::Matrix<4, 3> rotation = {Cy * Cz, Cz * Sx * Sy - Cx * Sz, Sx * Sz + Cx * Cz * Sy,
+                                Cy * Sz, Cx * Cz + Sx * Sy * Sz, Cx * Sy * Sz - Cz * Sx,
+                                -Sy, Cy * Sx, Cx * Cy,
+                                0, 0, 0};
+    BLA::Matrix<4, 1> position = {desired_posture.forward, desired_posture.horizontal, desired_posture.height, 1};
+    BLA::Matrix<4, 4> t_G_B = rotation || position;
+    BLA::Matrix<4, 4> t_FL = t_G_B * tX_body2FLab;
+    BLA::Matrix<4, 4> t_FR = t_G_B * tX_body2FRab;
+    BLA::Matrix<4, 4> t_BL = t_G_B * tX_body2BLab;
+    BLA::Matrix<4, 4> t_BR = t_G_B * tX_body2BRab;
+
+    BLA::Matrix<4, 1> temp = t_FL.Inverse()*pos_now.tX_Ground2FL_end.Submatrix(BLA::Slice<0,4>(),BLA::Slice<3,4>());
+    FL.leg_inverseKinematics_pos(FL.ab_rad, FL.hip_rad, FL.knee_rad, temp(0), temp(1), temp(2), FL.ab_rad, FL.hip_rad, FL.knee_rad);
+    FL.update(FL.ab_rad,FL.hip_rad,FL.knee_rad);
+
+    temp = t_FR.Inverse()*pos_now.tX_Ground2FR_end.Submatrix(BLA::Slice<0,4>(),BLA::Slice<3,4>());
+    FR.leg_inverseKinematics_pos(FR.ab_rad, FR.hip_rad, FR.knee_rad, temp(0), temp(1), temp(2), FR.ab_rad, FR.hip_rad, FR.knee_rad);
+    FR.update(FR.ab_rad,FR.hip_rad,FR.knee_rad);
+
+    temp = t_BL.Inverse()*pos_now.tX_Ground2BL_end.Submatrix(BLA::Slice<0,4>(),BLA::Slice<3,4>());
+    BL.leg_inverseKinematics_pos(BL.ab_rad, BL.hip_rad, BL.knee_rad, temp(0), temp(1), temp(2), BL.ab_rad, BL.hip_rad, BL.knee_rad);
+    BL.update(BL.ab_rad,BL.hip_rad,BL.knee_rad);
+
+    temp = t_BR.Inverse()*pos_now.tX_Ground2BR_end.Submatrix(BLA::Slice<0,4>(),BLA::Slice<3,4>());
+    BR.leg_inverseKinematics_pos(BR.ab_rad, BR.hip_rad, BR.knee_rad, temp(0), temp(1), temp(2), BR.ab_rad, BR.hip_rad, BR.knee_rad);
+    BR.update(BR.ab_rad,BR.hip_rad,BR.knee_rad);
+
+    // Serial.print("[");
+    // Serial.print(t_G_B(0,0),4);
+    // Serial.print(" ");
+    // Serial.print(t_G_B(0,1),4);
+    // Serial.print(" ");
+    // Serial.print(t_G_B(0,2),4);
+    // Serial.print(" ");
+    // Serial.println(t_G_B(0,3),4);
+    // Serial.print(t_G_B(1,0),4);
+    // Serial.print(" ");
+    // Serial.print(t_G_B(1,1),4);
+    // Serial.print(" ");
+    // Serial.print(t_G_B(1,2),4);
+    // Serial.print(" ");
+    // Serial.println(t_G_B(1,3),4);
+    // Serial.print(t_G_B(2,0),4);
+    // Serial.print(" ");
+    // Serial.print(t_G_B(2,1),4);
+    // Serial.print(" ");
+    // Serial.print(t_G_B(2,2),4);
+    // Serial.print(" ");
+    // Serial.println(t_G_B(2,3),4);
+    // Serial.print(t_G_B(3,0),4);
+    // Serial.print(" ");
+    // Serial.print(t_G_B(3,1),4);
+    // Serial.print(" ");
+    // Serial.print(t_G_B(3,2),4);
+    // Serial.print(" ");
+    // Serial.print(t_G_B(3,3),4);
+    // Serial.println("]");
+
+    // Serial.print(desired_posture.forward,4);
+    // Serial.print(" ");
+    // Serial.print(desired_posture.horizontal,4);
+    // Serial.print(" ");
+    // Serial.print(desired_posture.height,4);
+    // Serial.print(" ");
+    // Serial.print(desired_posture.yaw,4);
+    // Serial.print(" ");
+    // Serial.print(desired_posture.pitch,4);
+    // Serial.print(" ");
+    // Serial.println(desired_posture.roll,4);
+
+    pos_now.update(desired_posture.forward, desired_posture.horizontal, desired_posture.height,
+                   desired_posture.yaw, desired_posture.pitch, desired_posture.roll,
+                   FL, FR, BL, BR);
+}
+
+void kinematics::swing_mgr()
+{
+    if (gait == 1423)
+    {
+        if (FL.swing_complete == false)
+        {
+            FL.swing_complete = true;
+            leg_swing_choice = tag_BR;
+        }
+        else if (BR.swing_complete == false)
+        {
+            BR.swing_complete = true;
+            leg_swing_choice = tag_FR;
+        }
+        else if (FR.swing_complete == false)
+        {
+            FR.swing_complete = true;
+            leg_swing_choice = tag_BL;
+        }
+        else if (BL.swing_complete == false)
+        {
+            BL.swing_complete = true;
+            leg_swing_choice = tag_FL;
+        }
+    }
+}
+
+void kinematics::state_mgr(float &time_elapsed_)
+{
+    // gait completion check
+    bool gait_complete_check = true;
+    if (kinematic_task != TASK_IDLE)
+    {
+        gait_complete_check = gait_complete_check & FL.swing_complete;
+        gait_complete_check = gait_complete_check & FR.swing_complete;
+        gait_complete_check = gait_complete_check & BL.swing_complete;
+        gait_complete_check = gait_complete_check & BR.swing_complete;
+    }
+    // task completion check
+    bool task_complete_check = false;
+    if (kinematic_task == TASK_SHIFT_POSTURE)
+    {
+        task_complete_check = time_elapsed_ / posture_time_span > 1 + 0.5 * msg_timer_interval/1000 / posture_time_span;
+    }
+    else if (kinematic_task == TASK_SWING_LEG)
+    {
+        task_complete_check = time_elapsed_ / leg_swing_time_span > 1 + 0.5 * msg_timer_interval/1000 / leg_swing_time_span;
+    }
+    if (!gait_complete_check)
+    {
+        if (!task_complete_check)
+        {
+            if (kinematic_task == TASK_SHIFT_POSTURE)
+            {
+                float progress = time_elapsed_ / posture_time_span;
+                if (posture_val_set == false)
+                {
+                    update_posture();
+                    posture_val_set = true;     ///////// not checked yet
+                }
+                body_simp temp_posture;
+                temp_posture.forward = progress * (pos_end.forward-pos_ini.forward) + pos_ini.forward;
+                temp_posture.horizontal = progress * (pos_end.horizontal-pos_ini.horizontal) + pos_ini.horizontal;
+                temp_posture.height = progress * (pos_end.height-pos_ini.height) + pos_ini.height;
+                temp_posture.yaw = progress * (pos_end.yaw-pos_ini.yaw) + pos_ini.yaw;
+                temp_posture.pitch = progress * (pos_end.pitch-pos_ini.pitch) + pos_ini.pitch;
+                temp_posture.roll = progress * (pos_end.roll-pos_ini.roll) + pos_ini.roll;
+                body_iK(temp_posture);    
+            }
+            else if (kinematic_task == TASK_SWING_LEG)
+            {
+                float progress = time_elapsed_ / leg_swing_time_span;
+                // leg_pos temp_leg_pos = {progress * (leg_pos_end.x - leg_pos_ini.x) + leg_pos_ini.x,
+                //                         progress * (leg_pos_end.y - leg_pos_ini.y) + leg_pos_ini.y,
+                //                         leg_swing_height * cos(PI_math*progress - PI_math/2)};
+                leg_pos temp_leg_pos;
+                temp_leg_pos.x = progress * (leg_pos_end.x - leg_pos_ini.x) + leg_pos_ini.x;
+                temp_leg_pos.y = progress * (leg_pos_end.y - leg_pos_ini.y) + leg_pos_ini.y;
+                temp_leg_pos.z = leg_swing_height * cos(PI_math*progress - PI_math/2);
+                swing_iK(temp_leg_pos);
+            }
+        }
+        else
+        {
+            time_elapsed_ = msg_timer_interval/1000;
+            if (kinematic_task == TASK_SHIFT_POSTURE)
+            {
+                // the last task was shifting to neutral position which has been completed
+                // set all swing flags to true so the kinematic task can be switch to idle
+                if (posture_neutral_request == true)
+                {
+                    posture_neutral_request = false;
+                    FL.swing_complete = true;
+                    FR.swing_complete = true;
+                    BL.swing_complete = true;
+                    BR.swing_complete = true;
+                    posture_val_set = false;
+                    return;
+                }
+                posture_val_set = false;
+                kinematic_task = TASK_SWING_LEG;
+                float progress = time_elapsed_ / leg_swing_time_span;
+                update_swing();
+                // leg_pos temp_leg_pos = {progress * (leg_pos_end.x - leg_pos_ini.x) + leg_pos_ini.x,
+                //                         progress * (leg_pos_end.y - leg_pos_ini.y) + leg_pos_ini.y,
+                //                         leg_swing_height * cos(PI_math*progress - PI_math/2)};
+                leg_pos temp_leg_pos;
+                temp_leg_pos.x = progress * (leg_pos_end.x - leg_pos_ini.x) + leg_pos_ini.x;
+                temp_leg_pos.y = progress * (leg_pos_end.y - leg_pos_ini.y) + leg_pos_ini.y;
+                temp_leg_pos.z = leg_swing_height * cos(PI_math*progress - PI_math/2);
+                swing_iK(temp_leg_pos);
+            }
+            else if (kinematic_task == TASK_SWING_LEG)
+            {
+                swing_mgr();
+                kinematic_task = TASK_SHIFT_POSTURE;
+                float progress = time_elapsed_ / posture_time_span;
+                bool eval = FL.swing_complete & FR.swing_complete & BL.swing_complete & BR.swing_complete;
+                if (eval)
+                {
+                    FL.swing_complete = false;
+                    FR.swing_complete = false;
+                    BL.swing_complete = false;
+                    BR.swing_complete = false;
+                    yaw_ini_flag = false;
+                    if (kinematic_mode == MODE_END)
+                    {
+                        posture_neutral_request = true;
+                    }
+                }
+                update_posture();
+                posture_val_set = true;
+                body_simp temp_posture;
+                temp_posture.forward = progress * (pos_end.forward-pos_ini.forward) + pos_ini.forward;
+                temp_posture.horizontal = progress * (pos_end.horizontal-pos_ini.horizontal) + pos_ini.horizontal;
+                temp_posture.height = progress * (pos_end.height-pos_ini.height) + pos_ini.height;
+                temp_posture.yaw = progress * (pos_end.yaw-pos_ini.yaw) + pos_ini.yaw;
+                temp_posture.pitch = progress * (pos_end.pitch-pos_ini.pitch) + pos_ini.pitch;
+                temp_posture.roll = progress * (pos_end.roll-pos_ini.roll) + pos_ini.roll;
+                body_iK(temp_posture);
+            }
+        }
+    }
+    else
+    {
+        kinematic_task = TASK_IDLE;
+        FL.swing_complete = false;
+        FR.swing_complete = false;
+        BL.swing_complete = false;
+        BR.swing_complete = false;
+    }
+}
+
+void kinematics::update(float &time_elapsed_, radio radio_readings)
+{
+    calc_input(radio_readings);
+    state_mgr(time_elapsed_);
+}
+
+void kinematics::debug_print()
+{
+    Serial.print("G-frame ");
+    Serial.print("FL - x: ");
+    Serial.print(pos_now.tX_Ground2FL_end(0,3),4);
+    Serial.print(", y: ");
+    Serial.print(pos_now.tX_Ground2FL_end(1,3),4);
+    Serial.print(", z: ");
+    Serial.println(pos_now.tX_Ground2FL_end(2,3),4);
+
+    Serial.print("G-frame ");
+    Serial.print("FR - x: ");
+    Serial.print(pos_now.tX_Ground2FR_end(0,3),4);
+    Serial.print(", y: ");
+    Serial.print(pos_now.tX_Ground2FR_end(1,3),4);
+    Serial.print(", z: ");
+    Serial.println(pos_now.tX_Ground2FR_end(2,3),4);
+    
+    Serial.print("G-frame ");
+    Serial.print("BL - x: ");
+    Serial.print(pos_now.tX_Ground2BL_end(0,3),4);
+    Serial.print(", y: ");
+    Serial.print(pos_now.tX_Ground2BL_end(1,3),4);
+    Serial.print(", z: ");
+    Serial.println(pos_now.tX_Ground2BL_end(2,3),4);
+    
+    Serial.print("G-frame ");
+    Serial.print("BR - x: ");
+    Serial.print(pos_now.tX_Ground2BR_end(0,3),4);
+    Serial.print(", y: ");
+    Serial.print(pos_now.tX_Ground2BR_end(1,3),4);
+    Serial.print(", z: ");
+    Serial.println(pos_now.tX_Ground2BR_end(2,3),4);
+
+    // Serial.print("FL: ");
+    // Serial.print(FL.ab_rad,4);
+    // Serial.print(" ");
+    // Serial.print(FL.hip_rad,4);
+    // Serial.print(" ");
+    // Serial.println(FL.knee_rad,4);
+
+    // Serial.print("FR: ");
+    // Serial.print(FR.ab_rad,4);
+    // Serial.print(" ");
+    // Serial.print(FR.hip_rad,4);
+    // Serial.print(" ");
+    // Serial.println(FR.knee_rad,4);
+    
+    // Serial.print("BL: ");
+    // Serial.print(BL.ab_rad,4);
+    // Serial.print(" ");
+    // Serial.print(BL.hip_rad,4);
+    // Serial.print(" ");
+    // Serial.println(BL.knee_rad,4);
+
+    // Serial.print("BR: ");
+    // Serial.print(BR.ab_rad,4);
+    // Serial.print(" ");
+    // Serial.print(BR.hip_rad,4);
+    // Serial.print(" ");
+    // Serial.println(BR.knee_rad,4);
+
+    // Serial.print("FL: ");
+    // Serial.print(FL.tX_ab2end(0,3),4);
+    // Serial.print(" ");
+    // Serial.print(FL.tX_ab2end(1,3),4);
+    // Serial.print(" ");
+    // Serial.println(FL.tX_ab2end(2,3),4);
+
+    // Serial.print("FR: ");
+    // Serial.print(FR.tX_ab2end(0,3),4);
+    // Serial.print(" ");
+    // Serial.print(FR.tX_ab2end(1,3),4);
+    // Serial.print(" ");
+    // Serial.println(FR.tX_ab2end(2,3),4);
+    
+    // Serial.print("BL: ");
+    // Serial.print(BL.tX_ab2end(0,3),4);
+    // Serial.print(" ");
+    // Serial.print(BL.tX_ab2end(1,3),4);
+    // Serial.print(" ");
+    // Serial.println(BL.tX_ab2end(2,3),4);
+
+    // Serial.print("BR: ");
+    // Serial.print(BR.tX_ab2end(0,3),4);
+    // Serial.print(" ");
+    // Serial.print(BR.tX_ab2end(1,3),4);
+    // Serial.print(" ");
+    // Serial.println(BR.tX_ab2end(2,3),4);
+
+    Serial.print("FWD: ");
+    Serial.print(pos_now.forward,4);
+    Serial.print(" HZT: ");
+    Serial.print(pos_now.horizontal,4);
+    Serial.print(" HGT: ");
+    Serial.print(pos_now.height,4);
+    Serial.print(" YAW: ");
+    Serial.print(pos_now.yaw,4);
+    Serial.print(" PCH: ");
+    Serial.print(pos_now.pitch,4);
+    Serial.print(" ROL: ");
+    Serial.println(pos_now.roll,4);
+
+    Serial.print("X-target: ");
+    Serial.print(input.x_target,4);
+    Serial.print(" Y-target: ");
+    Serial.print(input.y_target,4);
+    Serial.print(" YAW-target: ");
+    Serial.println(input.yaw_target,4);
+
+    // Serial.print(pos_end.forward,4);
+    // Serial.print(" ");
+    // Serial.print(pos_end.horizontal,4);
+    // Serial.print(" ");
+    // Serial.print(pos_end.height,4);
+    // Serial.print(" ");
+    // Serial.print(pos_end.yaw,4);
+    // Serial.print(" ");
+    // Serial.print(pos_end.pitch,4);
+    // Serial.print(" ");
+    // Serial.println(pos_end.roll,4);
+
+    // Serial << Target << "\n";
+
+                // Serial.print("FL: ");
+                // Serial.print(pos_now.tX_Ground2FL_end(0, 3),4);
+                // Serial.print(" ");
+                // Serial.print(pos_now.tX_Ground2FL_end(0, 3),4);
+                // Serial.print(" ");
+                // Serial.print("FR: ");
+                // Serial.print(pos_now.tX_Ground2FR_end(0, 3),4);
+                // Serial.print(" ");
+                // Serial.print(pos_now.tX_Ground2FR_end(0, 3),4);
+                // Serial.print(" ");
+                // Serial.print("BR: ");
+                // Serial.print(pos_now.tX_Ground2BR_end(0, 3),4);
+                // Serial.print(" ");
+                // Serial.print(pos_now.tX_Ground2BR_end(0, 3),4);
+                // Serial.print(" ");
+                // Serial.print("BL: ");
+                // Serial.print(pos_now.tX_Ground2BL_end(0, 3),4);
+                // Serial.print(" ");
+                // Serial.println(pos_now.tX_Ground2BL_end(0, 3),4);
+    Serial.print("MODE: ");
+    if (kinematic_mode == MODE_CONT)
+    {
+        Serial.print("CONT");
+    }
+    else if (kinematic_mode == MODE_END)
+    {
+        Serial.print("END");
+    }
+    Serial.print(" TASK: ");
+    if (kinematic_task == TASK_IDLE)
+    {
+        Serial.print("IDLE");
+    }
+    else if (kinematic_task == TASK_SHIFT_POSTURE)
+    {
+        Serial.println("SPo");
+    }
+    else if (kinematic_task == TASK_SWING_LEG)
+    {
+        Serial.print("SWg ");
+        if (leg_swing_choice == tag_FL)
+        {
+            Serial.println("FL");
+        }
+        else if (leg_swing_choice == tag_FR)
+        {
+            Serial.println("FR");
+        }
+        else if (leg_swing_choice == tag_BL)
+        {
+            Serial.println("BL");
+        }
+        else if (leg_swing_choice == tag_BR)
+        {
+            Serial.println("BR");
+        }
+    }
+    Serial.println("-----");
 }

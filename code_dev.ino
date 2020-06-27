@@ -33,74 +33,23 @@ jointPositions joint;
 jointPositions *joint_ptr = &joint;
 
 // Initialize timer
-Metro timer = Metro(SERIAL_MSG_TIMER);
+Metro timer = Metro(msg_timer_interval);
 
 leg_timer legtimertest(2.0, 5, 400);
 
-// Initialize trajectory ticker
-int tick_fL = 0;
-int tick_fR = 0;
-int tick_bL = 0;
-int tick_bR = 0;
+float leg_pos_offset_forward = 0.03;
+float leg_pos_offset_horizontal = 0.03;
 
-// Initialize trajectory time stamp
-float time_fL = 0.0;
-float time_fR = 0.0;
-float time_bL = 0.0;
-float time_bR = 0.0;
-char gait_state = GAIT_IDLE;
-bool flag_fL_end = false;
-bool flag_fR_end = false;
-bool flag_bL_end = false;
-bool flag_bR_end = false;
-bool flag_normal_cycle = false;
-bool flag_end_cycle = false;
-int step_counter = 0;
-char requested_gait_state = GAIT_IDLE;
-bool cycle_end_flag = false;
+radio radio_readings;
+kinematics qPed(0.075,3,2,0.35,leg_pos_offset_forward,leg_pos_offset_horizontal);
+float kine_time = 0;
+int test_timer = 0;
+bool manual_stop = false;
 
-/**
- * State variable
- * 'z' = idle
- * '1' = bspline
- */
-char loop_state = STATE_IDLE;
+
+loop_state state = STATE_IDLE;
 
 unsigned long timerrr;
-
-float pos3_ab = 0.0;
-float pos3_hip = 0.0;
-float pos3_knee = 0.0;
-
-float pos4_ab = 0.0;
-float pos4_hip = 0.0;
-float pos4_knee = 0.0;
-
-float pos5_ab_FL = 0.0;
-float pos5_hip_FL = 0.0;
-float pos5_knee_FL = 0.0;
-float pos5_ab_FR = 0.0;
-float pos5_hip_FR = 0.0;
-float pos5_knee_FR = 0.0;
-float pos5_ab_bL = 0.0;
-float pos5_hip_bL = 0.0;
-float pos5_knee_bL = 0.0;
-float pos5_ab_bR = 0.0;
-float pos5_hip_bR = 0.0;
-float pos5_knee_bR = 0.0;
-
-float pos6_ab_FL = 0.0;
-float pos6_hip_FL = 0.0;
-float pos6_knee_FL = 0.0;
-float pos6_ab_FR = 0.0;
-float pos6_hip_FR = 0.0;
-float pos6_knee_FR = 0.0;
-float pos6_ab_bL = 0.0;
-float pos6_hip_bL = 0.0;
-float pos6_knee_bL = 0.0;
-float pos6_ab_bR = 0.0;
-float pos6_hip_bR = 0.0;
-float pos6_knee_bR = 0.0;
 
 /**
  * Connect ODrive
@@ -152,257 +101,29 @@ void find_joint_neutral_position()
 #endif
 }
 
-/**
- * reset the traj array ticks to 0
- */
-void reset_tick()
-{
-  tick_fL = 0;
-  tick_fR = 0;
-  tick_bL = 0;
-  tick_bR = 0;
-}
 
-/**
- * update the traj array tick
- * @param mode - choice of gait
- * @param state - state of gait
- */
-void update_tick(char mode, char state)
+void manual_find()
 {
-  if (mode == TROT_GAIT)
-  {
-    if (state == GAIT_STARTING)
-    {
-      tick_fL++;
-      tick_fR = 0;
-      tick_bL = 0;
-      tick_bR++;
-    }
-    else if (state == GAIT_ENDING)
-    {
-      tick_fL = 0;
-      tick_fR++;
-      tick_bL++;
-      tick_bR = 0;
-    }
-    else if (state == GAIT_NORMAL)
-    {
-      tick_fL++;
-      if (tick_fL >= 0 && tick_fL <= 99)
-      {
-        tick_bR = tick_fL;
-        tick_fR = tick_fL + 100;
-        tick_bL = tick_fL + 100;
-      }
-      else
-      {
-        tick_bR = tick_fL;
-        tick_fR = tick_fL - 100;
-        tick_bL = tick_fL - 100;
-      }
-    }
-  }
-  else if (mode == PACE_GAIT)
-  {
-  }
-  else if (mode == BOUND_GAIT)
-  {
-  }
-  else if (mode == WAVE_GAIT)
-  {
-  }
-}
-
-/**
- * reset the time stamps to 0
- */
-void reset_time()
-{
-  time_bL = 0;
-  time_bR = 0;
-  time_fL = 0;
-  time_fR = 0;
-  flag_fL_end = false;
-  flag_fR_end = false;
-  flag_bL_end = false;
-  flag_bR_end = false;
-  flag_end_cycle = false;
-  step_counter = 0;
-  gait_state = GAIT_STARTING;
-  flag_normal_cycle = false;
-  cycle_end_flag = false;
-}
-
-/**
- * update time stamp based on walk cycle time, duty factor and gait choice
- * @param cycleTime - time of a one step cycle [sec]
- * @param dutyFactor - percent support period
- * @param mode - choice of gait
- * @param choice - state of gait
- */
-void update_time(float cycleTime, float dutyFactor, char mode, char choice)
-{
-  // unsigned short delta_ticker = 0.25 * cycleTime / SERIAL_MSG_TIME_INTERVAL;
-  if (mode == CRAWL_GAIT)
-  {
-    // Serial.println("238");
-    if (choice == GAIT_STARTING)
-    {
-      if (gait_state == GAIT_STARTING)
-      {
-        time_fL = time_fL + SERIAL_MSG_TIME_INTERVAL;
-      }
-      // The starting phase has completed. Switch to normal phase.
-      if (time_fL > cycleTime)
-      {
-        gait_state = GAIT_NORMAL;
-        // 1423 crawl gait
-        time_fL = 0.0 + SERIAL_MSG_TIME_INTERVAL;
-        time_bR = 0.75 * cycleTime + SERIAL_MSG_TIME_INTERVAL;
-        time_fR = 0.5 * cycleTime + SERIAL_MSG_TIME_INTERVAL;
-        time_bL = 0.25 * cycleTime + SERIAL_MSG_TIME_INTERVAL;
-      }
-      if (time_fL > 0.25 * cycleTime)
-      {
-        time_bR = time_bR + SERIAL_MSG_TIME_INTERVAL;
-      }
-      if (time_fL > 0.5 * cycleTime)
-      {
-        time_fR = time_fR + SERIAL_MSG_TIME_INTERVAL;
-      }
-      if (time_fL > 0.75 * cycleTime)
-      {
-        time_bL = time_bL + SERIAL_MSG_TIME_INTERVAL;
-      }
-    }
-    else if (choice == GAIT_ENDING)
-    {
-      /**
-       * Increment the time stamp of each leg indenpendently until the time stamp has reached
-       * the end point (flag_XX_end is set to true)
-       * @param flag_end_cycle is set to true when all the leg has finished the cycle
-       */
-      if (flag_fL_end == false)
-      {
-        time_fL = time_fL + SERIAL_MSG_TIME_INTERVAL;
-      }
-      if (flag_bR_end == false)
-      {
-        time_bR = time_bR + SERIAL_MSG_TIME_INTERVAL;
-      }
-      if (flag_fR_end == false)
-      {
-        time_fR = time_fR + SERIAL_MSG_TIME_INTERVAL;
-      }
-      if (flag_bL_end == false)
-      {
-        time_bL = time_bL + SERIAL_MSG_TIME_INTERVAL;
-      }
-      if (time_fL > cycleTime)
-      {
-        time_fL = 0.0;
-        flag_fL_end = true;
-      }
-      if (time_bR > cycleTime)
-      {
-        time_bR = 0.0;
-        flag_bR_end = true;
-      }
-      if (time_fR > cycleTime)
-      {
-        time_fR = 0.0;
-        flag_fR_end = true;
-      }
-      if (time_bL > cycleTime)
-      {
-        time_bL = 0.0;
-        flag_bL_end = true;
-      }
-      if (flag_fL_end == true && flag_bL_end == true && flag_fR_end == true && flag_bR_end == true)
-      {
-        flag_end_cycle = true;
-      }
-      else
-      {
-        gait_state = GAIT_ENDING;
-      }
-    }
-    /**
-     *  The normal phase. Time stamp of each leg increments independently of each other.
-     *  @param flag_normal_cycle is set to true everytime a cycle is completed
-     */
-    else if (choice == GAIT_NORMAL)
-    {
-      time_fL = time_fL + SERIAL_MSG_TIME_INTERVAL;
-      time_bR = time_bR + SERIAL_MSG_TIME_INTERVAL;
-      time_fR = time_fR + SERIAL_MSG_TIME_INTERVAL;
-      time_bL = time_bL + SERIAL_MSG_TIME_INTERVAL;
-      if (time_fL > 2.0)
-      {
-        time_fL = SERIAL_MSG_TIME_INTERVAL;
-      }
-      if (time_bR > 2.0)
-      {
-        time_bR = SERIAL_MSG_TIME_INTERVAL;
-      }
-      if (time_fR > 2.0)
-      {
-        time_fR = SERIAL_MSG_TIME_INTERVAL;
-      }
-      if (time_bL > 2.0)
-      {
-        time_bL = SERIAL_MSG_TIME_INTERVAL;
-        flag_normal_cycle = true;
-      }
-    }
-    else if (choice == GAIT_ONESTEP)
-    {
-      if (flag_fL_end == false)
-      {
-        time_fL = time_fL + SERIAL_MSG_TIME_INTERVAL;
-      }
-      if ((time_fL > 0.25 * cycleTime || flag_fL_end == true) && flag_bR_end == false)
-      {
-        time_bR = time_bR + SERIAL_MSG_TIME_INTERVAL;
-      }
-      if ((time_fL > 0.5 * cycleTime || flag_fL_end == true) && flag_fR_end == false)
-      {
-        time_fR = time_fR + SERIAL_MSG_TIME_INTERVAL;
-      }
-      if ((time_fL > 0.75 * cycleTime || flag_fL_end == true) && flag_bL_end == false)
-      {
-        time_bL = time_bL + SERIAL_MSG_TIME_INTERVAL;
-      }
-      if (time_fL > cycleTime)
-      {
-        time_fL = 0.0;
-        flag_fL_end = true;
-      }
-      if (time_bR > cycleTime)
-      {
-        time_bR = 0.0;
-        flag_bR_end = true;
-      }
-      if (time_fR > cycleTime)
-      {
-        time_fR = 0.0;
-        flag_fR_end = true;
-      }
-      if (time_bL > cycleTime)
-      {
-        time_bL = 0.0;
-        flag_bL_end = true;
-      }
-      if (flag_fL_end == true && flag_bR_end == true && flag_fR_end == true && flag_bL_end == true)
-      {
-        flag_end_cycle = true;
-      }
-    }
-  }
-  else if (mode == WAVE_GAIT)
-  {
-  }
+#ifdef ENABLE_FRONT_LEFT
+  front_AB.find_joint_neutral_position('u', LEFT);
+  front_HIP.find_joint_neutral_position('u', LEFT);
+  front_KNEE.find_joint_neutral_position('u', LEFT);
+#endif
+#ifdef ENABLE_FRONT_RIGHT
+  front_AB.find_joint_neutral_position('u', RIGHT);
+  front_HIP.find_joint_neutral_position('u', RIGHT);
+  front_KNEE.find_joint_neutral_position('u', RIGHT);
+#endif
+#ifdef ENABLE_BACK_LEFT
+  back_AB.find_joint_neutral_position('u', LEFT);
+  back_HIP.find_joint_neutral_position('u', LEFT);
+  back_KNEE.find_joint_neutral_position('u', LEFT);
+#endif
+#ifdef ENABLE_BACK_RIGHT
+  back_AB.find_joint_neutral_position('u', RIGHT);
+  back_HIP.find_joint_neutral_position('u', RIGHT);
+  back_KNEE.find_joint_neutral_position('u', RIGHT);
+#endif
 }
 
 /**
@@ -666,6 +387,26 @@ void calibJoints()
 void moveToPos_STDBY_blocking()
 {
   armJoints();
+// #ifdef ENABLE_FRONT_LEFT
+//   front_AB.update_target(LEFT, true, 5000000, -AB_STANDBY_POS_DEG);
+//   front_HIP.update_target(LEFT, true, 5000000, -HIP_STANDBY_POS_DEG);
+//   front_KNEE.update_target(LEFT, true, 5000000, -KNEE_STANDBY_POS_DEG);
+// #endif
+// #ifdef ENABLE_FRONT_RIGHT
+//   front_AB.update_target(RIGHT, true, 5000000, AB_STANDBY_POS_DEG);
+//   front_HIP.update_target(RIGHT, true, 5000000, HIP_STANDBY_POS_DEG);
+//   front_KNEE.update_target(RIGHT, true, 5000000, KNEE_STANDBY_POS_DEG);
+// #endif
+// #ifdef ENABLE_BACK_LEFT
+//   back_AB.update_target(LEFT, true, 5000000, AB_STANDBY_POS_DEG);
+//   back_HIP.update_target(LEFT, true, 5000000, -HIP_STANDBY_POS_DEG);
+//   back_KNEE.update_target(LEFT, true, 5000000, -KNEE_STANDBY_POS_DEG);
+// #endif
+// #ifdef ENABLE_BACK_RIGHT
+//   back_AB.update_target(RIGHT, true, 5000000, -AB_STANDBY_POS_DEG);
+//   back_HIP.update_target(RIGHT, true, 5000000, HIP_STANDBY_POS_DEG);
+//   back_KNEE.update_target(RIGHT, true, 5000000, KNEE_STANDBY_POS_DEG);
+// #enfdif
 #ifdef ENABLE_FRONT_LEFT
   front_AB.update_target(LEFT, true, 5000000, -AB_STANDBY_POS_DEG);
   front_HIP.update_target(LEFT, true, 5000000, -HIP_STANDBY_POS_DEG);
@@ -678,13 +419,13 @@ void moveToPos_STDBY_blocking()
 #endif
 #ifdef ENABLE_BACK_LEFT
   back_AB.update_target(LEFT, true, 5000000, AB_STANDBY_POS_DEG);
-  back_HIP.update_target(LEFT, true, 5000000, -HIP_STANDBY_POS_DEG);
-  back_KNEE.update_target(LEFT, true, 5000000, -KNEE_STANDBY_POS_DEG);
+  back_HIP.update_target(LEFT, true, 5000000, HIP_STANDBY_POS_DEG);
+  back_KNEE.update_target(LEFT, true, 5000000, KNEE_STANDBY_POS_DEG);
 #endif
 #ifdef ENABLE_BACK_RIGHT
   back_AB.update_target(RIGHT, true, 5000000, -AB_STANDBY_POS_DEG);
-  back_HIP.update_target(RIGHT, true, 5000000, HIP_STANDBY_POS_DEG);
-  back_KNEE.update_target(RIGHT, true, 5000000, KNEE_STANDBY_POS_DEG);
+  back_HIP.update_target(RIGHT, true, 5000000, -HIP_STANDBY_POS_DEG);
+  back_KNEE.update_target(RIGHT, true, 5000000, -KNEE_STANDBY_POS_DEG);
 #endif
   timer.reset();
   int stdbytimer = millis();
@@ -716,268 +457,6 @@ void moveToPos_STDBY_blocking()
   }
 }
 
-void manualInput_pos(int choice)
-{
-  String input;
-  if (choice == 3)
-  {
-    Serial.println("P3");
-    Serial.println("Enter ab pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("ab = ");
-    Serial.println(input);
-    pos3_ab = input.toInt();
-
-    Serial.println("Enter hip pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("hip = ");
-    Serial.println(input);
-    pos3_hip = input.toInt();
-
-    Serial.println("Enter knee pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("knee = ");
-    Serial.println(input);
-    pos3_knee = input.toInt();
-  }
-  if (choice == 4)
-  {
-    Serial.println("P4");
-    Serial.println("Enter ab pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("ab = ");
-    Serial.println(input);
-    pos4_ab = input.toInt();
-
-    Serial.println("Enter hip pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("hip = ");
-    Serial.println(input);
-    pos4_hip = input.toInt();
-
-    Serial.println("Enter knee pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("knee = ");
-    Serial.println(input);
-    pos4_knee = input.toInt();
-  }
-  if (choice == 5)
-  {
-    Serial.println("P5 FL");
-    Serial.println("Enter FL ab pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("ab = ");
-    Serial.println(input);
-    pos5_ab_FL = input.toFloat();
-
-    Serial.println("Enter FL hip pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("hip = ");
-    Serial.println(input);
-    pos5_hip_FL = input.toFloat();
-
-    Serial.println("Enter FL knee pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("knee = ");
-    Serial.println(input);
-    pos5_knee_FL = input.toFloat();
-
-    Serial.println("P5 FR");
-    Serial.println("Enter FR ab pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("ab = ");
-    Serial.println(input);
-    pos5_ab_FR = input.toFloat();
-
-    Serial.println("Enter FR hip pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("hip = ");
-    Serial.println(input);
-    pos5_hip_FR = input.toFloat();
-
-    Serial.println("Enter FR knee pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("knee = ");
-    Serial.println(input);
-    pos5_knee_FR = input.toFloat();
-
-    Serial.println("P5 BL");
-    Serial.println("Enter BL ab pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("ab = ");
-    Serial.println(input);
-    pos5_ab_bL = input.toFloat();
-
-    Serial.println("Enter BL hip pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("hip = ");
-    Serial.println(input);
-    pos5_hip_bL = input.toFloat();
-
-    Serial.println("Enter BL knee pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("knee = ");
-    Serial.println(input);
-    pos5_knee_bL = input.toFloat();
-
-    Serial.println("P5 BR");
-    Serial.println("Enter BR ab pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("ab = ");
-    Serial.println(input);
-    pos5_ab_bR = input.toFloat();
-
-    Serial.println("Enter BR hip pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("hip = ");
-    Serial.println(input);
-    pos5_hip_bR = input.toFloat();
-
-    Serial.println("Enter BR knee pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("knee = ");
-    Serial.println(input);
-    pos5_knee_bR = input.toFloat();
-  }
-  if (choice == 6)
-  {
-    Serial.println("P6 FL");
-    Serial.println("Enter FL ab pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("ab = ");
-    Serial.println(input);
-    pos6_ab_FL = input.toFloat();
-
-    Serial.println("Enter FL hip pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("hip = ");
-    Serial.println(input);
-    pos6_hip_FL = input.toFloat();
-
-    Serial.println("Enter FL knee pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("knee = ");
-    Serial.println(input);
-    pos6_knee_FL = input.toFloat();
-
-    Serial.println("P5 FR");
-    Serial.println("Enter FR ab pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("ab = ");
-    Serial.println(input);
-    pos6_ab_FR = input.toFloat();
-
-    Serial.println("Enter FR hip pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("hip = ");
-    Serial.println(input);
-    pos6_hip_FR = input.toFloat();
-
-    Serial.println("Enter FR knee pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("knee = ");
-    Serial.println(input);
-    pos6_knee_FR = input.toFloat();
-
-    Serial.println("P5 BL");
-    Serial.println("Enter BL ab pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("ab = ");
-    Serial.println(input);
-    pos6_ab_bL = input.toFloat();
-
-    Serial.println("Enter BL hip pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("hip = ");
-    Serial.println(input);
-    pos6_hip_bL = input.toFloat();
-
-    Serial.println("Enter BL knee pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("knee = ");
-    Serial.println(input);
-    pos6_knee_bL = input.toFloat();
-
-    Serial.println("P5 BR");
-    Serial.println("Enter BR ab pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("ab = ");
-    Serial.println(input);
-    pos6_ab_bR = input.toFloat();
-
-    Serial.println("Enter BR hip pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("hip = ");
-    Serial.println(input);
-    pos6_hip_bR = input.toFloat();
-
-    Serial.println("Enter BR knee pos");
-    while (Serial.available() == 0)
-      ;
-    input = readString();
-    Serial.print("knee = ");
-    Serial.println(input);
-    pos6_knee_bR = input.toFloat();
-  }
-}
 
 void config_sequence()
 {
@@ -987,21 +466,16 @@ void config_sequence()
     Serial.println("Enter readError to read axes error code");
     Serial.println("Enter calib to initiate joint calibration sequence");
     Serial.println("Enter find to calibrate neutral positions");
+    Serial.println("Enter mfind to calibrate neutral positions");
     Serial.println("-----------------------------------------");
     Serial.println("Enter stdby to proceed to STANDBY pos");
     Serial.println("Enter dis to disarm all motors");
     Serial.println("Enter deg to view joint positions");
-    Serial.println("Enter test to test time for bspline calculation");
     Serial.println("Enter manual to enter manual command mode");
     Serial.println("Enter 1 to disarm front left leg");
     Serial.println("Enter 2 to disarm front right leg");
     Serial.println("Enter 3 to disarm back left leg");
     Serial.println("Enter 4 to disarm back right leg");
-    Serial.println("Enter c3 to manually enter pos3");
-    Serial.println("Enter c4 to manually enter pos4");
-    Serial.println("Enter c5 to manually enter pos5");
-    Serial.println("Enter c6 to manually enter pos6");
-    Serial.println("Enter check to display all pos deg");
     Serial.println("-----------------------------------------");
     Serial.println("Enter exit to exit the config routine");
     Serial.println("=========================================");
@@ -1041,6 +515,10 @@ void config_sequence()
     {
       find_joint_neutral_position();
     }
+    else if (serial_input == "mfind")
+    {
+      manual_find();
+    }
     else if (serial_input == "1")
     {
       front_AB.disarmAxis(LEFT);
@@ -1065,179 +543,9 @@ void config_sequence()
       back_HIP.disarmAxis(RIGHT);
       back_KNEE.disarmAxis(RIGHT);
     }
-    else if (serial_input == "c3")
+    else if (serial_input == "qwe")
     {
-      manualInput_pos(3);
-    }
-    else if (serial_input == "c4")
-    {
-      manualInput_pos(4);
-    }
-    else if (serial_input == "c5")
-    {
-      manualInput_pos(5);
-    }
-    else if (serial_input == "c6")
-    {
-      manualInput_pos(6);
-    }
-    else if (serial_input == "check")
-    {
-      Serial.println("pos1");
-      Serial.print(AB_POS_1);
-      Serial.print(' ');
-      Serial.print(HIP_POS_1);
-      Serial.print(' ');
-      Serial.println(KNEE_POS_1);
-
-      Serial.println("pos2");
-      Serial.print(AB_POS_2);
-      Serial.print(' ');
-      Serial.print(HIP_POS_2);
-      Serial.print(' ');
-      Serial.println(KNEE_POS_2);
-
-      Serial.println("pos3");
-      Serial.print(pos3_ab);
-      Serial.print(' ');
-      Serial.print(pos3_hip);
-      Serial.print(' ');
-      Serial.println(pos3_knee);
-
-      Serial.println("pos4");
-      Serial.print(pos4_ab);
-      Serial.print(' ');
-      Serial.print(pos4_hip);
-      Serial.print(' ');
-      Serial.println(pos4_knee);
-
-      Serial.println("pos5");
-      Serial.print("FL ");
-      Serial.print(pos5_ab_FL);
-      Serial.print(' ');
-      Serial.print(pos5_hip_FL);
-      Serial.print(' ');
-      Serial.println(pos5_knee_FL);
-      Serial.print("FR ");
-      Serial.print(pos5_ab_FR);
-      Serial.print(' ');
-      Serial.print(pos5_hip_FR);
-      Serial.print(' ');
-      Serial.println(pos5_knee_FR);
-      Serial.print("BL ");
-      Serial.print(pos5_ab_bL);
-      Serial.print(' ');
-      Serial.print(pos5_hip_bL);
-      Serial.print(' ');
-      Serial.println(pos5_knee_bL);
-      Serial.print("BR ");
-      Serial.print(pos5_ab_bR);
-      Serial.print(' ');
-      Serial.print(pos5_hip_bR);
-      Serial.print(' ');
-      Serial.println(pos5_knee_bR);
-
-      Serial.println("pos6");
-      Serial.print("FL ");
-      Serial.print(pos6_ab_FL);
-      Serial.print(' ');
-      Serial.print(pos6_hip_FL);
-      Serial.print(' ');
-      Serial.println(pos6_knee_FL);
-      Serial.print("FR ");
-      Serial.print(pos6_ab_FR);
-      Serial.print(' ');
-      Serial.print(pos6_hip_FR);
-      Serial.print(' ');
-      Serial.println(pos6_knee_FR);
-      Serial.print("BL ");
-      Serial.print(pos6_ab_bL);
-      Serial.print(' ');
-      Serial.print(pos6_hip_bL);
-      Serial.print(' ');
-      Serial.println(pos6_knee_bL);
-      Serial.print("BR ");
-      Serial.print(pos6_ab_bR);
-      Serial.print(' ');
-      Serial.print(pos6_hip_bR);
-      Serial.print(' ');
-      Serial.println(pos6_knee_bR);
-    }
-    else if (serial_input == "trig")
-    {
-      float t1;
-      float t2;
-      float t3;
-      bool test;
-      Serial.println(micros());
-      test = leg_inverseKinematics_pos(0, 0, 0, 0.4, 0.142, 0.05, t1, t2, t3, FRONT_LEFT_LEG);
-      Serial.print(t1 / PI_math * 180);
-      Serial.print(' ');
-      Serial.print(t2 / PI_math * 180);
-      Serial.print(' ');
-      Serial.println(t3 / PI_math * 180);
-
-      Serial.println(micros());
-      Serial.println(micros());
-      test = leg_inverseKinematics_pos(0, 0, 0, 0.4, 0.142, 0.05, t1, t2, t3, FRONT_RIGHT_LEG);
-      Serial.print(t1 / PI_math * 180);
-      Serial.print(' ');
-      Serial.print(t2 / PI_math * 180);
-      Serial.print(' ');
-      Serial.println(t3 / PI_math * 180);
-
-      Serial.println(micros());
-      Serial.println(micros());
-      test = leg_inverseKinematics_pos(0, 0, 0, 0.4, 0.142, -0.05, t1, t2, t3, BACK_LEFT_LEG);
-      Serial.print(t1 / PI_math * 180);
-      Serial.print(' ');
-      Serial.print(t2 / PI_math * 180);
-      Serial.print(' ');
-      Serial.println(t3 / PI_math * 180);
-
-      Serial.println(micros());
-      Serial.println(micros());
-      test = leg_inverseKinematics_pos(0, 0, 0, 0.4, 0.142, -0.05, t1, t2, t3, BACK_RIGHT_LEG);
-      Serial.print(t1 / PI_math * 180);
-      Serial.print(' ');
-      Serial.print(t2 / PI_math * 180);
-      Serial.print(' ');
-      Serial.println(t3 / PI_math * 180);
-
-      Serial.println(micros());
-    }
-    else if (serial_input == "trans")
-    {
-      float yaw_desired = static_cast<float>(30)/180*PI_math;
-      float pitch_desired = static_cast<float>(10)/180*PI_math;
-      float roll_desired = static_cast<float>(10)/180*PI_math;
-      float forward_delta = 0;
-      float horizontal_delta = 0;
-      float vertical_delta = -0.05;
-      bool FL_support = true;
-      float FL_ab, FL_hip, FL_knee;
-      bool FR_support = true;
-      float FR_ab, FR_hip, FR_knee;
-      bool BL_support = true;
-      float BL_ab, BL_hip, BL_knee;
-      bool BR_support = true;
-      float BR_ab, BR_hip, BR_knee;
-
-      bool test;
-
-      BLA::Matrix<3> FL_vec;
-      BLA::Matrix<3> FR_vec;
-      BLA::Matrix<3> BL_vec;
-      BLA::Matrix<3> BR_vec;
-      Serial.println(micros());
-      test = calc_posture_joint_pos(yaw_desired, pitch_desired, roll_desired, 
-                                    forward_delta, horizontal_delta, vertical_delta,
-                                    FL_ab, FL_hip, FL_knee, FL_support, 
-                                    FR_ab, FR_hip, FR_knee, FR_support, 
-                                    BR_ab, BR_hip, BR_knee, BR_support,
-                                    BL_ab, BL_hip, BL_knee, BL_support);
-      Serial.println(test);
-      Serial.println(micros());
+      float a = manual_input_num();
     }
     else if (serial_input == "exit")
     {
@@ -1266,12 +574,14 @@ void setup()
   // radio.calibration();
   config_sequence();
 
+  radio_readings.debug_ini();
+
   Serial.println("ending setup");
 }
 
 void loop()
 {
-  legtimertest.update();
+  // legtimertest.update();
 
   // process state requests
   String serial_input;
@@ -1285,181 +595,44 @@ void loop()
   if (serial_input == "dis")
   {
     disarmJoints();
-    loop_state = STATE_IDLE;
+    Serial.println("stop");
+    state = STATE_IDLE;
   }
   else if (serial_input == "config")
   {
-    loop_state = STATE_IDLE;
+    state = STATE_IDLE;
     config_sequence();
-  }
-  else if (serial_input == "pos1")
-  {
-    loop_state = STATE_test;
-#ifdef ENABLE_FRONT_LEFT
-    front_AB.update_target(LEFT, true, 5000000, -AB_POS_1);
-    front_HIP.update_target(LEFT, true, 5000000, -HIP_POS_1);
-    front_KNEE.update_target(LEFT, true, 5000000, -KNEE_POS_1);
-#endif
-#ifdef ENABLE_FRONT_RIGHT
-    front_AB.update_target(RIGHT, true, 5000000, AB_POS_2);
-    front_HIP.update_target(RIGHT, true, 5000000, HIP_POS_2);
-    front_KNEE.update_target(RIGHT, true, 5000000, KNEE_POS_2);
-#endif
-#ifdef ENABLE_BACK_LEFT
-    back_AB.update_target(LEFT, true, 5000000, AB_POS_1);
-    back_HIP.update_target(LEFT, true, 5000000, -HIP_POS_1);
-    back_KNEE.update_target(LEFT, true, 5000000, -KNEE_POS_1);
-#endif
-#ifdef ENABLE_BACK_RIGHT
-    back_AB.update_target(RIGHT, true, 5000000, -AB_POS_2);
-    back_HIP.update_target(RIGHT, true, 5000000, HIP_POS_2);
-    back_KNEE.update_target(RIGHT, true, 5000000, KNEE_POS_2);
-#endif
-    Serial.println("POS1");
-    timer.reset();
-  }
-  else if (serial_input == "pos2")
-  {
-    loop_state = STATE_test;
-#ifdef ENABLE_FRONT_LEFT
-    front_AB.update_target(LEFT, true, 5000000, -AB_POS_2);
-    front_HIP.update_target(LEFT, true, 5000000, -HIP_POS_2);
-    front_KNEE.update_target(LEFT, true, 5000000, -KNEE_POS_2);
-#endif
-#ifdef ENABLE_FRONT_RIGHT
-    front_AB.update_target(RIGHT, true, 5000000, AB_POS_1);
-    front_HIP.update_target(RIGHT, true, 5000000, HIP_POS_1);
-    front_KNEE.update_target(RIGHT, true, 5000000, KNEE_POS_1);
-#endif
-#ifdef ENABLE_BACK_LEFT
-    back_AB.update_target(LEFT, true, 5000000, AB_POS_2);
-    back_HIP.update_target(LEFT, true, 5000000, -HIP_POS_2);
-    back_KNEE.update_target(LEFT, true, 5000000, -KNEE_POS_2);
-#endif
-#ifdef ENABLE_BACK_RIGHT
-    back_AB.update_target(RIGHT, true, 5000000, -AB_POS_1);
-    back_HIP.update_target(RIGHT, true, 5000000, HIP_POS_1);
-    back_KNEE.update_target(RIGHT, true, 5000000, KNEE_POS_1);
-#endif
-    Serial.println("POS2");
-    timer.reset();
-  }
-  else if (serial_input == "pos3")
-  {
-    loop_state = STATE_test;
-#ifdef ENABLE_FRONT_LEFT
-    front_AB.update_target(LEFT, true, 5000000, -pos3_ab);
-    front_HIP.update_target(LEFT, true, 5000000, -pos3_hip);
-    front_KNEE.update_target(LEFT, true, 5000000, -pos3_knee);
-#endif
-#ifdef ENABLE_FRONT_RIGHT
-    front_AB.update_target(RIGHT, true, 5000000, pos4_ab);
-    front_HIP.update_target(RIGHT, true, 5000000, pos4_hip);
-    front_KNEE.update_target(RIGHT, true, 5000000, pos4_knee);
-#endif
-#ifdef ENABLE_BACK_LEFT
-    back_AB.update_target(LEFT, true, 5000000, pos3_ab);
-    back_HIP.update_target(LEFT, true, 5000000, -pos3_hip);
-    back_KNEE.update_target(LEFT, true, 5000000, -pos3_knee);
-#endif
-#ifdef ENABLE_BACK_RIGHT
-    back_AB.update_target(RIGHT, true, 5000000, -pos4_ab);
-    back_HIP.update_target(RIGHT, true, 5000000, pos4_hip);
-    back_KNEE.update_target(RIGHT, true, 5000000, pos4_knee);
-#endif
-    timer.reset();
-  }
-  else if (serial_input == "pos4")
-  {
-    loop_state = STATE_test;
-#ifdef ENABLE_FRONT_LEFT
-    front_AB.update_target(LEFT, true, 5000000, -pos4_ab);
-    front_HIP.update_target(LEFT, true, 5000000, -pos4_hip);
-    front_KNEE.update_target(LEFT, true, 5000000, -pos4_knee);
-#endif
-#ifdef ENABLE_FRONT_RIGHT
-    front_AB.update_target(RIGHT, true, 5000000, pos3_ab);
-    front_HIP.update_target(RIGHT, true, 5000000, pos3_hip);
-    front_KNEE.update_target(RIGHT, true, 5000000, pos3_knee);
-#endif
-#ifdef ENABLE_BACK_LEFT
-    back_AB.update_target(LEFT, true, 5000000, pos4_ab);
-    back_HIP.update_target(LEFT, true, 5000000, -pos4_hip);
-    back_KNEE.update_target(LEFT, true, 5000000, -pos4_knee);
-#endif
-#ifdef ENABLE_BACK_RIGHT
-    back_AB.update_target(RIGHT, true, 5000000, -pos3_ab);
-    back_HIP.update_target(RIGHT, true, 5000000, pos3_hip);
-    back_KNEE.update_target(RIGHT, true, 5000000, pos3_knee);
-#endif
-    timer.reset();
-  }
-  else if (serial_input == "pos5")
-  {
-    loop_state = STATE_test;
-#ifdef ENABLE_FRONT_LEFT
-    front_AB.update_target(LEFT, true, 5000000, -pos5_ab_FL);
-    front_HIP.update_target(LEFT, true, 5000000, -pos5_hip_FL);
-    front_KNEE.update_target(LEFT, true, 5000000, -pos5_knee_FL);
-#endif
-#ifdef ENABLE_FRONT_RIGHT
-    front_AB.update_target(RIGHT, true, 5000000, pos5_ab_FR);
-    front_HIP.update_target(RIGHT, true, 5000000, pos5_hip_FR);
-    front_KNEE.update_target(RIGHT, true, 5000000, pos5_knee_FR);
-#endif
-#ifdef ENABLE_BACK_LEFT
-    back_AB.update_target(LEFT, true, 5000000, pos5_ab_bL);
-    back_HIP.update_target(LEFT, true, 5000000, -pos5_hip_bL);
-    back_KNEE.update_target(LEFT, true, 5000000, -pos5_knee_bL);
-#endif
-#ifdef ENABLE_BACK_RIGHT
-    back_AB.update_target(RIGHT, true, 5000000, -pos5_ab_bR);
-    back_HIP.update_target(RIGHT, true, 5000000, pos5_hip_bR);
-    back_KNEE.update_target(RIGHT, true, 5000000, pos5_knee_bR);
-#endif
-    timer.reset();
-  }
-  else if (serial_input == "pos6")
-  {
-    loop_state = STATE_test;
-#ifdef ENABLE_FRONT_LEFT
-    front_AB.update_target(LEFT, true, 5000000, -pos6_ab_FL);
-    front_HIP.update_target(LEFT, true, 5000000, -pos6_hip_FL);
-    front_KNEE.update_target(LEFT, true, 5000000, -pos6_knee_FL);
-#endif
-#ifdef ENABLE_FRONT_RIGHT
-    front_AB.update_target(RIGHT, true, 5000000, pos6_ab_FR);
-    front_HIP.update_target(RIGHT, true, 5000000, pos6_hip_FR);
-    front_KNEE.update_target(RIGHT, true, 5000000, pos6_knee_FR);
-#endif
-#ifdef ENABLE_BACK_LEFT
-    back_AB.update_target(LEFT, true, 5000000, pos6_ab_bL);
-    back_HIP.update_target(LEFT, true, 5000000, -pos6_hip_bL);
-    back_KNEE.update_target(LEFT, true, 5000000, -pos6_knee_bL);
-#endif
-#ifdef ENABLE_BACK_RIGHT
-    back_AB.update_target(RIGHT, true, 5000000, -pos6_ab_bR);
-    back_HIP.update_target(RIGHT, true, 5000000, pos6_hip_bR);
-    back_KNEE.update_target(RIGHT, true, 5000000, pos6_knee_bR);
-#endif
-    timer.reset();
   }
   else if (serial_input == "time")
   {
     Serial.println("checking....");
     legtimertest.reset();
     timer.reset();
-    loop_state = STATE_TIME_TEST;
+    state = STATE_TIME_TEST;
     timerrr = millis();
   }
-  else if (serial_input == "cp1")
+  else if (serial_input == "test")
   {
-
+    Serial.println("testing...");
+    timer.reset();
+    test_timer = millis();
+    state = STATE_K_UPDATE;
   }
-  // state machine
-  switch (loop_state)
+  else if (serial_input == "stop")
   {
-    case STATE_test:
+    manual_stop = true;
+  }
+  else if (serial_input == "reset")
+  {
+    manual_stop = false;
+    qPed.reset();
+  }
+
+  
+  // state machine
+  switch (state)
+  {
+    case STATE_UPDATE:
     {
       if (timer.check())
       {
@@ -1496,7 +669,60 @@ void loop()
       }
     }
     break;
+    case STATE_K_UPDATE:
+    {
+      if (timer.check())
+      {
+        if (!manual_stop)
+        {
+          radio_readings.debug_update(1500,1500,1500,2000);
+        }
+        // else if (millis()-test_timer >= 30000 && millis()-test_timer <= 40000 && !manual_stop)
+        // {
+        //   radio_readings.debug_update(1500,1500,1500,1000);
+        // }
+        // else if (millis()-test_timer >= 50000 && millis()-test_timer <= 55000 && !manual_stop)
+        // {
+        //   radio_readings.debug_update(2000,1500,1500,1500);
+        // }
+        else
+        {
+          radio_readings.debug_update(1500,1500,1500,1500);
+        }
+        
+        qPed.update(kine_time,radio_readings);
+        if (qPed.kinematic_task != TASK_IDLE)
+        {
+          kine_time = kine_time + msg_timer_interval/1000;
+        }
+        else
+        {
+          kine_time = 0;
+        }
+        Serial.print("Time: ");
+        Serial.println(kine_time,4);
+        qPed.debug_print();
+
+        front_AB.SetPosition(LEFT,-qPed.FL.ab_rad/PI_math*180);
+        front_HIP.SetPosition(LEFT,-qPed.FL.hip_rad/PI_math*180);
+        front_KNEE.SetPosition(LEFT,-qPed.FL.knee_rad/PI_math*180);
+
+        front_AB.SetPosition(RIGHT,-qPed.FR.ab_rad/PI_math*180);
+        front_HIP.SetPosition(RIGHT,-qPed.FR.hip_rad/PI_math*180);
+        front_KNEE.SetPosition(RIGHT,-qPed.FR.knee_rad/PI_math*180);
+
+        back_AB.SetPosition(LEFT,-qPed.BL.ab_rad/PI_math*180);
+        back_HIP.SetPosition(LEFT,-qPed.BL.hip_rad/PI_math*180);
+        back_KNEE.SetPosition(LEFT,-qPed.BL.knee_rad/PI_math*180);
+
+        back_AB.SetPosition(RIGHT,-qPed.BR.ab_rad/PI_math*180);
+        back_HIP.SetPosition(RIGHT,-qPed.BR.hip_rad/PI_math*180);
+        back_KNEE.SetPosition(RIGHT,-qPed.BR.knee_rad/PI_math*180);
+
+      }
+    }
+    break;
     default:
-      break;
+    break;
   }
 }
