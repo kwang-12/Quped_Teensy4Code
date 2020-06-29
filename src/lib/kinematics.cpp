@@ -1,36 +1,46 @@
 #include "kinematics.h"
 
 kinematics::kinematics(float margin_, float posture_time_span_, float swing_time_span_,
-                       float body_height, float leg_pos_offset_forward_, float leg_pos_offset_horizontal_,
-                       float max_FWD, float max_HZT, float max_HGT,
-                       float max_YAW)
+                       float body_idle_height, float body_low_height,
+                       float leg_pos_offset_forward_, float leg_pos_offset_horizontal_,
+                       float max_FWD, float max_HZT, float max_HGT, float max_YAW,
+                       float max_p_PITCH, float max_p_ROLL, float max_p_YAW)
 {
-    FL.init(tag_FL, body_height, leg_pos_offset_forward_, leg_pos_offset_horizontal_);
-    FR.init(tag_FR, body_height, leg_pos_offset_forward_, leg_pos_offset_horizontal_);
-    BL.init(tag_BL, body_height, leg_pos_offset_forward_, leg_pos_offset_horizontal_);
-    BR.init(tag_BR, body_height, leg_pos_offset_forward_, leg_pos_offset_horizontal_);
-    pos_now.update(0, 0, body_height, 0, 0, 0, FL, FR, BL, BR);
+    // initialize to idle posture
+    FL.init(tag_FL, body_idle_height, leg_pos_offset_forward_, leg_pos_offset_horizontal_);
+    FR.init(tag_FR, body_idle_height, leg_pos_offset_forward_, leg_pos_offset_horizontal_);
+    BL.init(tag_BL, body_idle_height, leg_pos_offset_forward_, leg_pos_offset_horizontal_);
+    BR.init(tag_BR, body_idle_height, leg_pos_offset_forward_, leg_pos_offset_horizontal_);
+    pos_now.update(0, 0, body_idle_height, 0, 0, 0, FL, FR, BL, BR);
 
     margin = margin_;
     posture_time_span = posture_time_span_;
     leg_swing_time_span = swing_time_span_;
+    posture_idle_height = body_idle_height;
+    posture_low_height = body_low_height;
+    leg_pos_offset_forward = leg_pos_offset_forward_;
+    leg_pos_offset_horizontal = leg_pos_offset_horizontal_;
     leg_swing_forward_max = max_FWD;
     leg_swing_horizontal_max = max_HZT;
     leg_swing_height = max_HGT;
     leg_swing_yaw_max = max_YAW;
-    leg_pos_offset_forward = leg_pos_offset_forward_;
-    leg_pos_offset_horizontal = leg_pos_offset_horizontal_;
+    posture_pitch_max = max_p_PITCH;
+    posture_roll_max = max_p_ROLL;
+    posture_yaw_max = max_p_YAW;
 }
 
+/**
+ * @todo currently reset doesnt reset qped to idle state
+ */
 void kinematics::reset()
 {
-    FL.init(tag_FL, 0.35, leg_pos_offset_forward, leg_pos_offset_horizontal);
-    FR.init(tag_FR, 0.35, leg_pos_offset_forward, leg_pos_offset_horizontal);
-    BL.init(tag_BL, 0.35, leg_pos_offset_forward, leg_pos_offset_horizontal);
-    BR.init(tag_BR, 0.35, leg_pos_offset_forward, leg_pos_offset_horizontal);
-    pos_now.update(0, 0, 0.35, 0, 0, 0, FL, FR, BL, BR);
-    kinematic_task = TASK_IDLE;
-    kinematic_mode = MODE_END;
+    FL.init(tag_FL, posture_idle_height, leg_pos_offset_forward, leg_pos_offset_horizontal);
+    FR.init(tag_FR, posture_idle_height, leg_pos_offset_forward, leg_pos_offset_horizontal);
+    BL.init(tag_BL, posture_idle_height, leg_pos_offset_forward, leg_pos_offset_horizontal);
+    BR.init(tag_BR, posture_idle_height, leg_pos_offset_forward, leg_pos_offset_horizontal);
+    pos_now.update(0, 0, posture_idle_height, 0, 0, 0, FL, FR, BL, BR);
+    walk_state_task = TASK_IDLE;
+    walk_mode = MODE_END;
     yaw_ini_flag = false;
     leg_swing_choice = tag_FL;
     posture_val_set = false;
@@ -39,20 +49,125 @@ void kinematics::reset()
 
 void kinematics::calc_input(radio radio_readings)
 {
-    input.x_target = leg_swing_forward_max * radio_readings.ch_1.val;
-    input.y_target = leg_swing_horizontal_max * radio_readings.ch_2.val;
-    input.yaw_target = leg_swing_yaw_max * radio_readings.ch_4.val;
-    if ((kinematic_task == TASK_IDLE) & ((radio_readings.ch_1.val != 0) || (radio_readings.ch_2.val != 0) || (radio_readings.ch_4.val != 0)))
+    bool state_request_walking = radio_readings.ch_3.val > 0.5 && radio_readings.ch_3.val <= 1;
+    bool state_request_posture = radio_readings.ch_3.val >= -0.5 && radio_readings.ch_3.val <= 0.5;
+    bool state_request_low = radio_readings.ch_3.val >= -1 && radio_readings.ch_3.val < -0.5;
+    if (current_state == STATE_LOW)
     {
-        kinematic_task = TASK_SHIFT_POSTURE;
+        if (state_request_posture || state_request_walking)
+        {
+            current_state = STATE_LOW_TO_IDLE;      // switch state to idle
+
+            pos_ini.forward = pos_now.forward;
+            pos_ini.horizontal = pos_now.horizontal;
+            pos_ini.height = pos_now.height;
+            pos_ini.yaw = pos_now.yaw;
+            pos_ini.pitch = pos_now.pitch;
+            pos_ini.roll = pos_now.roll;
+
+            pos_end.forward = pos_now.forward;
+            pos_end.horizontal = pos_now.horizontal;
+            pos_end.height = posture_idle_height;
+            pos_end.yaw = pos_now.yaw;
+            pos_end.pitch = pos_now.pitch;
+            pos_end.roll = pos_now.roll;
+        }
     }
-    if ((radio_readings.ch_1.val == 0) & (radio_readings.ch_2.val == 0) & (radio_readings.ch_4.val == 0))
+    else if (current_state == STATE_POST)
     {
-        kinematic_mode = MODE_END;
+        if (state_request_low || state_request_walking)
+        {
+            current_state = STATE_POST_TO_IDLE;      // switch state to idle
+
+            pos_ini.forward = pos_now.forward;
+            pos_ini.horizontal = pos_now.horizontal;
+            pos_ini.height = pos_now.height;
+            pos_ini.yaw = pos_now.yaw;
+            pos_ini.pitch = pos_now.pitch;
+            pos_ini.roll = pos_now.roll;
+
+            pos_end.forward = pos_now.forward;
+            pos_end.horizontal = pos_now.horizontal;
+            pos_end.height = pos_now.height;
+            pos_end.yaw = ini_yaw;
+            pos_end.pitch = 0;
+            pos_end.roll = 0;
+        }
     }
-    else
+    /**
+     * the following check only happens when walking cycle has completed and
+     * the posture has returned to neutral position
+     */
+    else if (current_state == STATE_WALK && walk_state_task == TASK_IDLE)
     {
-        kinematic_mode = MODE_CONT;
+        if (state_request_low || state_request_posture)
+        {
+            // change the state to idle for further planning
+            current_state = STATE_IDLE;
+        }
+    }
+    
+    // When the current state is IDLE
+    if (current_state == STATE_IDLE)
+    {
+        if (state_request_walking)
+        {
+            // ready to switch to walk without modifications
+            current_state = STATE_WALK;
+        }
+        else if (state_request_posture)
+        {
+            current_state = STATE_POST;
+            ini_yaw = pos_now.yaw;      // save the current yaw position for posture reset
+        }
+        else if (state_request_low)
+        {
+            current_state = STATE_IDLE_TO_LOW;
+
+            pos_ini.forward = pos_now.forward;
+            pos_ini.horizontal = pos_now.horizontal;
+            pos_ini.height = pos_now.height;
+            pos_ini.yaw = pos_now.yaw;
+            pos_ini.pitch = pos_now.pitch;
+            pos_ini.roll = pos_now.roll;
+
+            pos_end.forward = pos_now.forward;
+            pos_end.horizontal = pos_now.horizontal;
+            pos_end.height = posture_low_height;        // adjust the desired body height to low
+            pos_end.yaw = pos_now.yaw;
+            pos_end.pitch = pos_now.pitch;
+            pos_end.roll = pos_now.roll;
+        }
+    }
+
+    // When the current state is adjust posture
+    if (current_state == STATE_POST)
+    {
+        pitch_target = posture_pitch_max * radio_readings.ch_1.val;
+        roll_target = posture_roll_max * radio_readings.ch_2.val;
+        yaw_target = ini_yaw + posture_yaw_max * radio_readings.ch_4.val;
+    }
+
+    // When the current state is walking
+    if (current_state == STATE_WALK)
+    {
+        input.x_target = leg_swing_forward_max * radio_readings.ch_1.val;
+        input.y_target = leg_swing_horizontal_max * radio_readings.ch_2.val;
+        input.yaw_target = leg_swing_yaw_max * radio_readings.ch_4.val;
+        // if ((walk_state_task == TASK_IDLE) & ((radio_readings.ch_1.val != 0) || (radio_readings.ch_2.val != 0) || (radio_readings.ch_4.val != 0)))
+        if (walk_state_task == TASK_IDLE && state_request_walking)
+        {
+            walk_state_task = TASK_SHIFT_POSTURE;
+        }
+        // if ((radio_readings.ch_1.val == 0) & (radio_readings.ch_2.val == 0) & (radio_readings.ch_4.val == 0))
+        if (state_request_posture || state_request_low)
+        {
+            walk_mode = MODE_END;
+        }
+        else
+        {
+            walk_mode = MODE_CONT;
+        }
     }
 }
 
@@ -352,11 +467,11 @@ void kinematics::swing_mgr()
     }
 }
 
-void kinematics::state_mgr(float &time_elapsed_)
+void kinematics::walk_mgr(float &time_elapsed_)
 {
     // gait completion check
     bool gait_complete_check = true;
-    if (kinematic_task != TASK_IDLE)
+    if (walk_state_task != TASK_IDLE)
     {
         gait_complete_check = gait_complete_check & FL.swing_complete;
         gait_complete_check = gait_complete_check & FR.swing_complete;
@@ -365,11 +480,11 @@ void kinematics::state_mgr(float &time_elapsed_)
     }
     // task completion check
     bool task_complete_check = false;
-    if (kinematic_task == TASK_SHIFT_POSTURE)
+    if (walk_state_task == TASK_SHIFT_POSTURE)
     {
         task_complete_check = time_elapsed_ / posture_time_span > 1 + 0.5 * msg_timer_interval/1000 / posture_time_span;
     }
-    else if (kinematic_task == TASK_SWING_LEG)
+    else if (walk_state_task == TASK_SWING_LEG)
     {
         task_complete_check = time_elapsed_ / leg_swing_time_span > 1 + 0.5 * msg_timer_interval/1000 / leg_swing_time_span;
     }
@@ -377,7 +492,7 @@ void kinematics::state_mgr(float &time_elapsed_)
     {
         if (!task_complete_check)
         {
-            if (kinematic_task == TASK_SHIFT_POSTURE)
+            if (walk_state_task == TASK_SHIFT_POSTURE)
             {
                 float progress = time_elapsed_ / posture_time_span;
                 if (posture_val_set == false)
@@ -394,7 +509,7 @@ void kinematics::state_mgr(float &time_elapsed_)
                 temp_posture.roll = progress * (pos_end.roll-pos_ini.roll) + pos_ini.roll;
                 body_iK(temp_posture);    
             }
-            else if (kinematic_task == TASK_SWING_LEG)
+            else if (walk_state_task == TASK_SWING_LEG)
             {
                 float progress = time_elapsed_ / leg_swing_time_span;
                 // leg_pos temp_leg_pos = {progress * (leg_pos_end.x - leg_pos_ini.x) + leg_pos_ini.x,
@@ -410,7 +525,7 @@ void kinematics::state_mgr(float &time_elapsed_)
         else
         {
             time_elapsed_ = msg_timer_interval/1000;
-            if (kinematic_task == TASK_SHIFT_POSTURE)
+            if (walk_state_task == TASK_SHIFT_POSTURE)
             {
                 // the last task was shifting to neutral position which has been completed
                 // set all swing flags to true so the kinematic task can be switch to idle
@@ -425,7 +540,7 @@ void kinematics::state_mgr(float &time_elapsed_)
                     return;
                 }
                 posture_val_set = false;
-                kinematic_task = TASK_SWING_LEG;
+                walk_state_task = TASK_SWING_LEG;
                 float progress = time_elapsed_ / leg_swing_time_span;
                 update_swing();
                 // leg_pos temp_leg_pos = {progress * (leg_pos_end.x - leg_pos_ini.x) + leg_pos_ini.x,
@@ -437,10 +552,10 @@ void kinematics::state_mgr(float &time_elapsed_)
                 temp_leg_pos.z = leg_swing_height * cos(PI_math*progress - PI_math/2);
                 swing_iK(temp_leg_pos);
             }
-            else if (kinematic_task == TASK_SWING_LEG)
+            else if (walk_state_task == TASK_SWING_LEG)
             {
                 swing_mgr();
-                kinematic_task = TASK_SHIFT_POSTURE;
+                walk_state_task = TASK_SHIFT_POSTURE;
                 float progress = time_elapsed_ / posture_time_span;
                 bool eval = FL.swing_complete & FR.swing_complete & BL.swing_complete & BR.swing_complete;
                 if (eval)
@@ -450,7 +565,7 @@ void kinematics::state_mgr(float &time_elapsed_)
                     BL.swing_complete = false;
                     BR.swing_complete = false;
                     yaw_ini_flag = false;
-                    if (kinematic_mode == MODE_END)
+                    if (walk_mode == MODE_END)
                     {
                         posture_neutral_request = true;
                     }
@@ -470,11 +585,109 @@ void kinematics::state_mgr(float &time_elapsed_)
     }
     else
     {
-        kinematic_task = TASK_IDLE;
+        walk_state_task = TASK_IDLE;
         FL.swing_complete = false;
         FR.swing_complete = false;
         BL.swing_complete = false;
         BR.swing_complete = false;
+    }
+}
+
+void kinematics::state_mgr(float& time_elapsed_)
+{
+    bool state_complete_check = false;
+    // Only care about states that generate motion
+    if (current_state == STATE_POST)
+    {
+        float error = 0;
+        float output = 0;
+        body_simp temp_posture;
+        // cartesian position remain the same
+        temp_posture.forward = pos_now.forward;
+        temp_posture.horizontal = pos_now.horizontal;
+        temp_posture.height = pos_now.height;
+        // calculate desired angular position with a simple p-controller
+        // pitch
+        error = pitch_target - pos_now.pitch;
+        output = pos_now.pitch + error * posture_k_p;
+        // clamp the output in case of overflow/overshoot
+        if (output >= posture_pitch_max)
+        {
+            output = posture_pitch_max;
+        }
+        else if (output <= -1 * posture_pitch_max)
+        {
+            output = -1 * posture_pitch_max;
+        }
+        temp_posture.pitch = output;
+        // roll
+        error = roll_target - pos_now.roll;
+        output = pos_now.roll + error * posture_k_p;
+        // clamp the output in case of overflow/overshoot
+        if (output >= posture_roll_max)
+        {
+            output = posture_roll_max;
+        }
+        else if (output <= -1 * posture_roll_max)
+        {
+            output = -1 * posture_roll_max;
+        }
+        temp_posture.roll = output;
+        // yaw
+        error = yaw_target - pos_now.yaw;
+        output = pos_now.yaw + error * posture_k_p;
+        // clamp the output in case of overflow/overshoot
+        if (output >= posture_yaw_max)
+        {
+            output = posture_yaw_max;
+        }
+        else if (output <= -1 * posture_yaw_max)
+        {
+            output = -1 * posture_yaw_max;
+        }
+        temp_posture.yaw = output;
+        body_iK(temp_posture);
+    }
+    else if (current_state == STATE_WALK)
+    {
+        walk_mgr(time_elapsed_);
+        if (walk_state_task != TASK_IDLE)
+        {
+            time_elapsed_ = time_elapsed_ + msg_timer_interval/1000;
+        }
+        else
+        {
+            time_elapsed_ = 0;
+        }
+    }
+    else if (current_state == STATE_LOW_TO_IDLE 
+          || current_state == STATE_IDLE_TO_LOW 
+          || current_state == STATE_POST_TO_IDLE)
+    {
+        state_complete_check = time_elapsed_/posture_time_span >  1+0.5*msg_timer_interval/1000/posture_time_span;
+        if (state_complete_check && (current_state == STATE_LOW_TO_IDLE || current_state == STATE_POST_TO_IDLE))
+        {
+            current_state = STATE_IDLE;
+            time_elapsed_ = 0;
+        }
+        else if (state_complete_check && current_state == STATE_IDLE_TO_LOW)
+        {
+            current_state = STATE_LOW;
+            time_elapsed_ = 0;
+        }
+        else
+        {
+            float progress = time_elapsed_/posture_time_span;
+            body_simp temp_posture;
+            temp_posture.forward = progress * (pos_end.forward-pos_ini.forward) + pos_ini.forward;
+            temp_posture.horizontal = progress * (pos_end.horizontal-pos_ini.horizontal) + pos_ini.horizontal;
+            temp_posture.height = progress * (pos_end.height-pos_ini.height) + pos_ini.height;
+            temp_posture.yaw = progress * (pos_end.yaw-pos_ini.yaw) + pos_ini.yaw;
+            temp_posture.pitch = progress * (pos_end.pitch-pos_ini.pitch) + pos_ini.pitch;
+            temp_posture.roll = progress * (pos_end.roll-pos_ini.roll) + pos_ini.roll;
+            body_iK(temp_posture);
+            time_elapsed_ = time_elapsed_ + msg_timer_interval/1000;
+        }
     }
 }
 
@@ -627,25 +840,55 @@ void kinematics::debug_print()
                 // Serial.print(pos_now.tX_Ground2BL_end(0, 3),4);
                 // Serial.print(" ");
                 // Serial.println(pos_now.tX_Ground2BL_end(0, 3),4);
-    Serial.print("MODE: ");
-    if (kinematic_mode == MODE_CONT)
+    Serial.print("STATE: ");
+    if (current_state == STATE_IDLE)
+    {
+        Serial.print("IDLE");
+    }
+    else if (current_state == STATE_IDLE_TO_LOW)
+    {
+        Serial.print("IDLE_TO_LOW");
+    }
+    else if (current_state == STATE_LOW)
+    {
+        Serial.print("LOW");
+    }
+    else if (current_state == STATE_LOW_TO_IDLE)
+    {
+        Serial.print("LOW_TO_IDLE");
+    }
+    else if (current_state == STATE_POST)
+    {
+        Serial.print("POST");
+    }
+    else if (current_state == STATE_POST_TO_IDLE)
+    {
+        Serial.print("POST_TO_IDLE");
+    }
+    else if (current_state == STATE_WALK)
+    {
+        Serial.print("WALK");
+    }
+    
+    Serial.print(" MODE: ");
+    if (walk_mode == MODE_CONT)
     {
         Serial.print("CONT");
     }
-    else if (kinematic_mode == MODE_END)
+    else if (walk_mode == MODE_END)
     {
         Serial.print("END");
     }
     Serial.print(" TASK: ");
-    if (kinematic_task == TASK_IDLE)
+    if (walk_state_task == TASK_IDLE)
     {
-        Serial.print("IDLE");
+        Serial.println("IDLE");
     }
-    else if (kinematic_task == TASK_SHIFT_POSTURE)
+    else if (walk_state_task == TASK_SHIFT_POSTURE)
     {
         Serial.println("SPo");
     }
-    else if (kinematic_task == TASK_SWING_LEG)
+    else if (walk_state_task == TASK_SWING_LEG)
     {
         Serial.print("SWg ");
         if (leg_swing_choice == tag_FL)

@@ -74,29 +74,6 @@ const float dimension_d2 = 0.092;
 const float dimension_length = 0.517;
 const float dimension_width = 0.2;
 
-enum serial_port
-{
-  SERIAL_PORT_1 = 1,
-  SERIAL_PORT_2 = 2,
-  SERIAL_PORT_3 = 3,
-  SERIAL_PORT_4 = 4,
-  SERIAL_PORT_5 = 5,
-  SERIAL_PORT_6 = 6,
-  SERIAL_PORT_7 = 7
-};
-
-enum actuator_type
-{
-  TYPE_AB = 0,
-  TYPE_HIP = 1,
-  TYPE_KNEE = 2
-};
-
-enum axis_tag
-{
-  LEFT_MOTOR = 0,
-  RIGHT_MOTOR = 1
-};
 
 enum leg_tag
 {
@@ -106,11 +83,22 @@ enum leg_tag
     tag_BR = 8
 };         
 
-enum loop_state
+enum program_state
 {
-  STATE_IDLE = 0,
-  STATE_K_UPDATE = 1,
-  STATE_UPDATE = 3
+  LOOP_IDLE = 0,
+  LOOP_K_UPDATE = 1,
+  LOOP_UPDATE = 3
+};
+
+enum qPed_state
+{
+  STATE_LOW = 1,
+  STATE_LOW_TO_IDLE = 2,
+  STATE_IDLE = 3,
+  STATE_IDLE_TO_LOW = 4,
+  STATE_POST = 5,
+  STATE_POST_TO_IDLE = 6,
+  STATE_WALK = 7,
 };
 
 enum input_mode
@@ -119,7 +107,7 @@ enum input_mode
   MODE_CONT = 1
 };
 
-enum motion_task
+enum walk_task
 {
   TASK_IDLE = 0,
   TASK_SHIFT_POSTURE = 1,
@@ -130,7 +118,7 @@ enum motion_task
 
 
 
-const float msg_timer_interval = 5; // interval between sending msg (millisecond)
+const float msg_timer_interval = 50; // interval between sending msg (millisecond)
 
 #define KNEE_GearRatio 1.25f
 #define DIMENSION_A2 0.218f

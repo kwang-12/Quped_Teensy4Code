@@ -13,12 +13,6 @@ String odrv5_name = "front_HIP";
 String odrv6_name = "front_AB";
 
 // ODrive object
-// ODriveArduino back_KNEE(Serial1, odrv1_name, KNEE, 1, RIGHT, LEFT, SERIAL_BAUD_RATE);  //knee back, axis0-RB, axis1-LB
-// ODriveArduino back_HIP(Serial2, odrv2_name, HIP, 2, RIGHT, LEFT, SERIAL_BAUD_RATE);    //hip back, axis0-RB, axis1-LB
-// ODriveArduino back_AB(Serial3, odrv3_name, AB, 3, LEFT, RIGHT, SERIAL_BAUD_RATE);      //ab back, axis0-LB, axis1-RB
-// ODriveArduino front_KNEE(Serial4, odrv4_name, KNEE, 4, LEFT, RIGHT, SERIAL_BAUD_RATE); //knee front, axis0-RB, axis1-LB
-// ODriveArduino front_HIP(Serial5, odrv5_name, HIP, 5, LEFT, RIGHT, SERIAL_BAUD_RATE);   //hip front, axis0-LB, axis1-RB
-// ODriveArduino front_AB(Serial7, odrv6_name, AB, 7, RIGHT, LEFT, SERIAL_BAUD_RATE);     //ab front, axis0-LB, axis1-RB
 ODriveArduino back_KNEE(Serial1, odrv1_name, KNEE, 1, RIGHT, LEFT, SERIAL_BAUD_RATE);  //knee back, axis0-RB, axis1-LB
 ODriveArduino back_HIP(Serial2, odrv2_name, HIP, 2, RIGHT, LEFT, SERIAL_BAUD_RATE);    //hip back, axis0-RB, axis1-LB
 ODriveArduino back_AB(Serial3, odrv3_name, AB, 3, LEFT, RIGHT, SERIAL_BAUD_RATE);      //ab back, axis0-LB, axis1-RB
@@ -39,12 +33,13 @@ float leg_pos_offset_forward = 0.03;
 float leg_pos_offset_horizontal = 0.03;
 
 radio radio_readings;
-kinematics qPed(0.075, 3, 2, 0.35, leg_pos_offset_forward, leg_pos_offset_horizontal);
+kinematics qPed(0.075, 3, 2, 0.35, 0.20, leg_pos_offset_forward, leg_pos_offset_horizontal);
+// kinematics qPed(0.075, 3, 2, 0.35，0.20，leg_pos_offset_forward， leg_pos_offset_horizontal);
 float kine_time = 0;
 int test_timer = 0;
 bool manual_stop = false;
 
-loop_state state = STATE_IDLE;
+program_state state = LOOP_IDLE;
 
 unsigned long timerrr;
 
@@ -553,7 +548,6 @@ void config_sequence()
 
 void setup()
 {
-  // Serial to PC @ 921600 baud rate
   Serial.begin(1000000);
   while (!Serial)
     ;
@@ -592,11 +586,11 @@ void loop()
   {
     disarmJoints();
     Serial.println("stop");
-    state = STATE_IDLE;
+    state = LOOP_IDLE;
   }
   else if (serial_input == "config")
   {
-    state = STATE_IDLE;
+    state = LOOP_IDLE;
     config_sequence();
   }
   else if (serial_input == "test")
@@ -604,7 +598,7 @@ void loop()
     Serial.println("testing...");
     timer.reset();
     test_timer = millis();
-    state = STATE_K_UPDATE;
+    state = LOOP_K_UPDATE;
   }
   else if (serial_input == "stop")
   {
@@ -619,7 +613,7 @@ void loop()
   // state machine
   switch (state)
   {
-  case STATE_UPDATE:
+  case LOOP_UPDATE:
   {
     if (timer.check())
     {
@@ -645,36 +639,57 @@ void loop()
     }
   }
   break;
-  case STATE_K_UPDATE:
+  case LOOP_K_UPDATE:
   {
     if (timer.check())
     {
-      if (!manual_stop)
+      // if (!manual_stop)
+      // {
+      //   radio_readings.debug_update(1500, 1500, 1500, 1500);
+      // }
+      // else
+      // {
+      //   radio_readings.debug_update(1500, 1500, 1500, 1500);
+      // }
+      if (millis()-test_timer < 5*1000 && !manual_stop)
       {
-        radio_readings.debug_update(1500, 1500, 1500, 2000);
+        radio_readings.debug_update(1500,1500,1000,1500);
       }
-      // else if (millis()-test_timer >= 30000 && millis()-test_timer <= 40000 && !manual_stop)
-      // {
-      //   radio_readings.debug_update(1500,1500,1500,1000);
-      // }
-      // else if (millis()-test_timer >= 50000 && millis()-test_timer <= 55000 && !manual_stop)
-      // {
-      //   radio_readings.debug_update(2000,1500,1500,1500);
-      // }
+      else if (millis()-test_timer <= 10*1000 && !manual_stop)
+      {
+        radio_readings.debug_update(1000,1000,1500,1000);
+      }
+      else if (millis()-test_timer <= 15*1000 && !manual_stop)
+      {
+        radio_readings.debug_update(2000,1000,1000,2000);
+      }
+      else if (millis()-test_timer <= 20*1000 && !manual_stop)
+      {
+        radio_readings.debug_update(1000,1000,2000,1000);
+      }
+      else if (millis()-test_timer <= 45*1000 && !manual_stop)
+      {
+        radio_readings.debug_update(2000,2000,1500,2000);
+      }
+      else if (millis()-test_timer <= 50*1000 && !manual_stop)
+      {
+        radio_readings.debug_update(2000,2000,2000,2000);
+      }
+      else if (millis()-test_timer <= 75*1000 && !manual_stop)
+      {
+        radio_readings.debug_update(1000,1500,1000,1500);
+      }
       else
       {
         radio_readings.debug_update(1500, 1500, 1500, 1500);
       }
 
+
       qPed.update(kine_time, radio_readings);
-      if (qPed.kinematic_task != TASK_IDLE)
-      {
-        kine_time = kine_time + msg_timer_interval / 1000;
-      }
-      else
-      {
-        kine_time = 0;
-      }
+
+      Serial.print("Actual time: ");
+      Serial.println(((float)millis()-test_timer)/1000);
+
       Serial.print("Time: ");
       Serial.println(kine_time, 4);
       qPed.debug_print();

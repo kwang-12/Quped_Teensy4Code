@@ -159,99 +159,6 @@ float ODriveArduino::transVelocity_num2deg(char axis_tag, long int numPerSec)
     }
 }
 
-bool ODriveArduino::moveTo_constVelo(char axis_tag, float target_deg, float inSec)
-{
-    if (axis_tag == axis0_tag_)
-    {
-        if (joint_target.a0_movementActivation == false) //initalize movement
-        {
-            joint_target.a0_start_deg = transPosition_num2deg(axis_tag, getAxisPos(axis_tag, true));
-            joint_target.a0_target_deg = target_deg;
-            float deg_delta = joint_target.a0_start_deg - joint_target.a0_target_deg;
-            //position difference is too small to make meaningful input
-            if (deg_delta < 0.1 && deg_delta > -0.1)
-            {
-                return true;
-            }
-            joint_target.a0_velo_deg = (target_deg - joint_target.a0_start_deg) / inSec;
-            joint_target.a0_travelTime_total = inSec;
-            joint_target.a0_traveltime_start = static_cast<float>(millis()) / 1000;
-            axis0_timer_.reset();
-            joint_target.a0_movementActivation = true;
-        }
-        float time_elapsed_sec = static_cast<float>(millis()) / 1000 - joint_target.a0_traveltime_start;
-        // check if time has elapsed
-        if (time_elapsed_sec >= joint_target.a0_travelTime_total)
-        //&&transPosition_num2deg(axis_tag, getAxisPos(axis_tag, true)) >= joint_target.a0_target_deg)
-        {
-            joint_target.a0_movementActivation = false;
-            return true;
-        }
-        else //not enogh time has elapsed -> keep moving
-        {
-            if (axis0_timer_.check() == true)
-            {
-                SetPosition(axis_tag,
-                            time_elapsed_sec * joint_target.a0_velo_deg + joint_target.a0_start_deg,
-                            joint_target.a0_velo_deg);
-                Serial.print(odrv_name_);
-                Serial.print("--- ");
-                Serial.print(axis0_tag_);
-                Serial.print(" target pos: ");
-                Serial.println(time_elapsed_sec * joint_target.a0_velo_deg + joint_target.a0_start_deg);
-                // Serial.print("velocity: ");
-                // Serial.println(joint_target.a0_velo_deg);
-            }
-            return false;
-        }
-    }
-    else if (axis_tag == axis1_tag_)
-    {
-        if (joint_target.a1_movementActivation == false) //initalize movement
-        {
-            joint_target.a1_start_deg = transPosition_num2deg(axis_tag, getAxisPos(axis_tag, true));
-            joint_target.a1_target_deg = target_deg;
-            float deg_delta = joint_target.a1_start_deg - joint_target.a1_target_deg;
-            //position difference is too small to make meaningful input
-            if (deg_delta < 0.1 && deg_delta > -0.1)
-            {
-                return true;
-            }
-            joint_target.a1_velo_deg = (target_deg - joint_target.a1_start_deg) / inSec;
-            joint_target.a1_travelTime_total = inSec;
-            joint_target.a1_traveltime_start = static_cast<float>(millis()) / 1000;
-            axis1_timer_.reset();
-            joint_target.a1_movementActivation = true;
-        }
-        float time_elapsed_sec = static_cast<float>(millis()) / 1000 - joint_target.a1_traveltime_start;
-        // check if time has elapsed
-        if (time_elapsed_sec >= joint_target.a1_travelTime_total)
-        //&&transPosition_num2deg(axis_tag, getAxisPos(axis_tag, true)) >= joint_target.a0_target_deg)
-        {
-            joint_target.a1_movementActivation = false;
-            return true;
-        }
-        else //not enogh time has elapsed -> keep moving
-        {
-            if (axis1_timer_.check() == true)
-            {
-                SetPosition(axis_tag,
-                            time_elapsed_sec * joint_target.a1_velo_deg + joint_target.a1_start_deg,
-                            joint_target.a1_velo_deg);
-                Serial.print(odrv_name_);
-                Serial.print("--- ");
-                Serial.print(axis1_tag_);
-                Serial.print(" target pos: ");
-                Serial.println(time_elapsed_sec * joint_target.a1_velo_deg + joint_target.a1_start_deg);
-                // Serial.print("velocity: ");
-                // Serial.println(joint_target.a1_velo_deg);
-            }
-            return false;
-        }
-    }
-    return false;
-}
-
 void ODriveArduino::update_target(char axis_tag, bool calc_required, unsigned long inMicroSec, float target_deg, float target_velo)
 {
     // target velocity is specified -> target degree must also be specified
@@ -393,45 +300,8 @@ void ODriveArduino::update(char axis_tag)
     }
 }
 
-void ODriveArduino::iniTimer(char axis_tag, unsigned long time_interval)
-{
-    if (axis_tag == axis0_tag_)
-    {
-        axis0_timer_ = Metro(time_interval);
-        axis0_timer_.reset();
-    }
-    else if (axis_tag == axis1_tag_)
-    {
-        axis1_timer_ = Metro(time_interval);
-        axis1_timer_.reset();
-    }
-}
 
-void ODriveArduino::modifyTimer(char axis_tag, unsigned long time_interval)
-{
-    if (axis_tag == axis0_tag_)
-    {
-        axis0_timer_.interval(time_interval);
-        axis0_timer_.reset();
-    }
-    else if (axis_tag == axis1_tag_)
-    {
-        axis1_timer_.interval(time_interval);
-        axis1_timer_.reset();
-    }
-}
 
-bool ODriveArduino::checkTimer(char axis_tag)
-{
-    if (axis_tag == axis0_tag_)
-    {
-        return axis0_timer_.check();
-    }
-    else
-    {
-        return axis1_timer_.check();
-    }
-}
 
 bool ODriveArduino::armAxis(char axis_tag)
 {

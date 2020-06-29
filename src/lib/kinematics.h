@@ -722,7 +722,17 @@ BLA::Matrix<4,4> tX_body2BRab ={0, 0,-1,-dimension_length/2,
     bool posture_val_set = false;         // true - pos_ini and pos_end are updated
     bool posture_neutral_request = false; // true - request for shifting to neutral pos
     int gait = 1423;
+    float posture_idle_height;
+    float posture_low_height;
+    float ini_yaw;
+    float pitch_target;
+    float roll_target;
     float yaw_target;
+    float posture_k_p = 0.004 * msg_timer_interval/5;
+    float posture_pitch_max;
+    float posture_roll_max;
+    float posture_yaw_max;
+
     /**
      * Leg swing - motion plan related variables
      */
@@ -744,8 +754,9 @@ BLA::Matrix<4,4> tX_body2BRab ={0, 0,-1,-dimension_length/2,
     /**
      * Motion plan state machine
      */
-    motion_task kinematic_task = TASK_IDLE;
-    input_mode kinematic_mode = MODE_END;
+    qPed_state current_state = STATE_IDLE;
+    walk_task walk_state_task = TASK_IDLE;
+    input_mode walk_mode = MODE_END;
     bool yaw_ini_flag = false;
 
     /**
@@ -762,14 +773,18 @@ BLA::Matrix<4,4> tX_body2BRab ={0, 0,-1,-dimension_length/2,
      * Constructor
      */
     kinematics(float margin_ = 0.10, float posture_time_span_ = 3, float swing_time_span_ = 2,
-               float body_height = 0.35, float leg_pos_offset_forward_ = 0, float leg_pos_offset_horizontal_ = 0,
-               float max_FWD = 0.10, float max_HZT = 0.05, float max_HGT = 0.10,
-               float max_YAW = static_cast<float>(8) / 180 * PI_math);
+               float body_idle_height = 0.35, float body_low_height = 0.18,
+               float leg_pos_offset_forward_ = 0, float leg_pos_offset_horizontal_ = 0,
+               float max_FWD = 0.08, float max_HZT = 0.04, float max_HGT = 0.10,
+               float max_YAW = static_cast<float>(8) / 180 * PI_math,
+               float max_p_PITCH = static_cast<float>(10) / 180 * PI_math, 
+               float max_p_ROLL = static_cast<float>(10) / 180 * PI_math,
+               float max_p_YAW = static_cast<float>(10) / 180 * PI_math);
     
     void reset();
 
     /**
-     * Determine input
+     * Determine states based on radio inputs
      */
     void calc_input(radio radio_readings);
 
@@ -800,8 +815,9 @@ BLA::Matrix<4,4> tX_body2BRab ={0, 0,-1,-dimension_length/2,
      */
     void swing_mgr();
 
-    void state_mgr(float& time_elapsed_);
+    void walk_mgr(float& time_elapsed_);
     
+    void state_mgr(float& time_elapsed_);
     /**
      * 
      */
