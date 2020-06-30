@@ -143,23 +143,23 @@ void kinematics::calc_input(radio radio_readings)
     // When the current state is adjust posture
     if (current_state == STATE_POST)
     {
-        pitch_target = posture_pitch_max * radio_readings.ch_1.val;
-        roll_target = posture_roll_max * radio_readings.ch_2.val;
+        pitch_target = posture_pitch_max * radio_readings.ch_2.val;
+        roll_target = posture_roll_max * radio_readings.ch_1.val;
         yaw_target = ini_yaw + posture_yaw_max * radio_readings.ch_4.val;
     }
 
     // When the current state is walking
     if (current_state == STATE_WALK)
     {
-        input.x_target = leg_swing_forward_max * radio_readings.ch_1.val;
-        input.y_target = leg_swing_horizontal_max * radio_readings.ch_2.val;
+        input.x_target = leg_swing_forward_max * radio_readings.ch_2.val;
+        input.y_target = leg_swing_horizontal_max * radio_readings.ch_1.val;
         input.yaw_target = leg_swing_yaw_max * radio_readings.ch_4.val;
-        // if ((walk_state_task == TASK_IDLE) & ((radio_readings.ch_1.val != 0) || (radio_readings.ch_2.val != 0) || (radio_readings.ch_4.val != 0)))
+        // if ((walk_state_task == TASK_IDLE) & ((radio_readings.ch_2.val != 0) || (radio_readings.ch_1.val != 0) || (radio_readings.ch_4.val != 0)))
         if (walk_state_task == TASK_IDLE && state_request_walking)
         {
             walk_state_task = TASK_SHIFT_POSTURE;
         }
-        // if ((radio_readings.ch_1.val == 0) & (radio_readings.ch_2.val == 0) & (radio_readings.ch_4.val == 0))
+        // if ((radio_readings.ch_2.val == 0) & (radio_readings.ch_1.val == 0) & (radio_readings.ch_4.val == 0))
         if (state_request_posture || state_request_low)
         {
             walk_mode = MODE_END;
@@ -699,37 +699,57 @@ void kinematics::update(float &time_elapsed_, radio radio_readings)
 
 void kinematics::debug_print()
 {
-    Serial.print("G-frame ");
     Serial.print("FL - x: ");
     Serial.print(pos_now.tX_Ground2FL_end(0,3),4);
     Serial.print(", y: ");
     Serial.print(pos_now.tX_Ground2FL_end(1,3),4);
     Serial.print(", z: ");
-    Serial.println(pos_now.tX_Ground2FL_end(2,3),4);
+    Serial.print(pos_now.tX_Ground2FL_end(2,3),4);
+    Serial.print(" AB: ");
+    Serial.print(FL.ab_rad/PI_math*180);
+    Serial.print(" HIP: ");
+    Serial.print(FL.hip_rad/PI_math*180);
+    Serial.print(" KNEE: ");
+    Serial.println(FL.knee_rad/PI_math*180);
 
-    Serial.print("G-frame ");
     Serial.print("FR - x: ");
     Serial.print(pos_now.tX_Ground2FR_end(0,3),4);
     Serial.print(", y: ");
     Serial.print(pos_now.tX_Ground2FR_end(1,3),4);
     Serial.print(", z: ");
-    Serial.println(pos_now.tX_Ground2FR_end(2,3),4);
+    Serial.print(pos_now.tX_Ground2FR_end(2,3),4);
+    Serial.print(" AB: ");
+    Serial.print(FR.ab_rad/PI_math*180);
+    Serial.print(" HIP: ");
+    Serial.print(FR.hip_rad/PI_math*180);
+    Serial.print(" KNEE: ");
+    Serial.println(FR.knee_rad/PI_math*180);
     
-    Serial.print("G-frame ");
     Serial.print("BL - x: ");
     Serial.print(pos_now.tX_Ground2BL_end(0,3),4);
     Serial.print(", y: ");
     Serial.print(pos_now.tX_Ground2BL_end(1,3),4);
     Serial.print(", z: ");
-    Serial.println(pos_now.tX_Ground2BL_end(2,3),4);
+    Serial.print(pos_now.tX_Ground2BL_end(2,3),4);
+    Serial.print(" AB: ");
+    Serial.print(BL.ab_rad/PI_math*180);
+    Serial.print(" HIP: ");
+    Serial.print(BL.hip_rad/PI_math*180);
+    Serial.print(" KNEE: ");
+    Serial.println(BL.knee_rad/PI_math*180);
     
-    Serial.print("G-frame ");
     Serial.print("BR - x: ");
     Serial.print(pos_now.tX_Ground2BR_end(0,3),4);
     Serial.print(", y: ");
     Serial.print(pos_now.tX_Ground2BR_end(1,3),4);
     Serial.print(", z: ");
-    Serial.println(pos_now.tX_Ground2BR_end(2,3),4);
+    Serial.print(pos_now.tX_Ground2BR_end(2,3),4);
+    Serial.print(" AB: ");
+    Serial.print(BR.ab_rad/PI_math*180);
+    Serial.print(" HIP: ");
+    Serial.print(BR.hip_rad/PI_math*180);
+    Serial.print(" KNEE: ");
+    Serial.println(BR.knee_rad/PI_math*180);
 
     // Serial.print("FL: ");
     // Serial.print(FL.ab_rad,4);
@@ -800,13 +820,24 @@ void kinematics::debug_print()
     Serial.print(" ROL: ");
     Serial.println(pos_now.roll,4);
 
-    Serial.print("X-target: ");
-    Serial.print(input.x_target,4);
-    Serial.print(" Y-target: ");
-    Serial.print(input.y_target,4);
-    Serial.print(" YAW-target: ");
-    Serial.println(input.yaw_target,4);
-
+    if (current_state == STATE_WALK)
+    {
+        Serial.print("X-target: ");
+        Serial.print(input.x_target,4);
+        Serial.print(" Y-target: ");
+        Serial.print(input.y_target,4);
+        Serial.print(" YAW-target: ");
+        Serial.println(input.yaw_target,4);
+    }
+    else if (current_state == STATE_POST)
+    {
+        Serial.print("Pitch - target: ");
+        Serial.print(pitch_target);
+        Serial.print(" Roll - target: ");
+        Serial.print(roll_target);
+        Serial.print(" Yaw - target: ");
+        Serial.println(yaw_target);
+    }
     // Serial.print(pos_end.forward,4);
     // Serial.print(" ");
     // Serial.print(pos_end.horizontal,4);
@@ -843,41 +874,41 @@ void kinematics::debug_print()
     Serial.print("STATE: ");
     if (current_state == STATE_IDLE)
     {
-        Serial.print("IDLE");
+        Serial.print("IDLE |");
     }
     else if (current_state == STATE_IDLE_TO_LOW)
     {
-        Serial.print("IDLE_TO_LOW");
+        Serial.print("IDLE_TO_LOW |");
     }
     else if (current_state == STATE_LOW)
     {
-        Serial.print("LOW");
+        Serial.print("LOW |");
     }
     else if (current_state == STATE_LOW_TO_IDLE)
     {
-        Serial.print("LOW_TO_IDLE");
+        Serial.print("LOW_TO_IDLE |");
     }
     else if (current_state == STATE_POST)
     {
-        Serial.print("POST");
+        Serial.print("POST |");
     }
     else if (current_state == STATE_POST_TO_IDLE)
     {
-        Serial.print("POST_TO_IDLE");
+        Serial.print("POST_TO_IDLE |");
     }
     else if (current_state == STATE_WALK)
     {
-        Serial.print("WALK");
+        Serial.print("WALK |");
     }
     
     Serial.print(" MODE: ");
     if (walk_mode == MODE_CONT)
     {
-        Serial.print("CONT");
+        Serial.print("CONT |");
     }
     else if (walk_mode == MODE_END)
     {
-        Serial.print("END");
+        Serial.print("END |");
     }
     Serial.print(" TASK: ");
     if (walk_state_task == TASK_IDLE)

@@ -118,7 +118,7 @@ enum walk_task
 
 
 
-const float msg_timer_interval = 50; // interval between sending msg (millisecond)
+const float msg_timer_interval = 5; // interval between sending msg (millisecond)
 
 #define KNEE_GearRatio 1.25f
 #define DIMENSION_A2 0.218f

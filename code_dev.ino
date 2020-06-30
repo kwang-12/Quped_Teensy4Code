@@ -33,7 +33,8 @@ float leg_pos_offset_forward = 0.03;
 float leg_pos_offset_horizontal = 0.03;
 
 radio radio_readings;
-kinematics qPed(0.075, 3, 2, 0.35, 0.20, leg_pos_offset_forward, leg_pos_offset_horizontal);
+//0.075 3 2
+kinematics qPed(0.05, 2, 1, 0.35, 0.20, leg_pos_offset_forward, leg_pos_offset_horizontal);
 // kinematics qPed(0.075, 3, 2, 0.35，0.20，leg_pos_offset_forward， leg_pos_offset_horizontal);
 float kine_time = 0;
 int test_timer = 0;
@@ -459,10 +460,14 @@ void config_sequence()
     Serial.println("Enter calib to initiate joint calibration sequence");
     Serial.println("Enter find to calibrate neutral positions");
     Serial.println("Enter mfind to calibrate neutral positions");
+    Serial.println("Enter rc to calibrate radio");
+    Serial.println("Enter rcst to reset radio");
     Serial.println("-----------------------------------------");
     Serial.println("Enter stdby to proceed to STANDBY pos");
     Serial.println("Enter dis to disarm all motors");
     Serial.println("Enter deg to view joint positions");
+    Serial.println("Enter rcsig to view rc signal");
+    Serial.println("Enter rcval to view processed rc value");
     Serial.println("Enter manual to enter manual command mode");
     Serial.println("Enter 1 to disarm front left leg");
     Serial.println("Enter 2 to disarm front right leg");
@@ -535,15 +540,66 @@ void config_sequence()
       back_HIP.disarmAxis(RIGHT);
       back_KNEE.disarmAxis(RIGHT);
     }
-    else if (serial_input == "qwe")
+    else if (serial_input == "rc")
     {
-      float a = manual_input_num();
+      radio_readings.calibrate();
+    }
+    else if (serial_input == "rcst")
+    {
+      radio_readings.reset();
+    }
+    else if (serial_input == "rcsig")
+    {
+      Serial.print(radio_readings.ch_1.signal);
+      Serial.print(",");
+      Serial.print(radio_readings.ch_2.signal);
+      Serial.print(",");
+      Serial.print(radio_readings.ch_3.signal);
+      Serial.print(",");
+      Serial.println(radio_readings.ch_4.signal);
+    }
+    else if (serial_input == "rcval")
+    {
+      while(Serial.available()==0)
+      {
+        if (millis()%50 ==0)
+        {
+          radio_readings.update();
+          Serial.print(radio_readings.ch_1.val);
+          Serial.print(",");
+          Serial.print(radio_readings.ch_2.val);
+          Serial.print(",");
+          Serial.print(radio_readings.ch_3.val);
+          Serial.print(",");
+          Serial.println(radio_readings.ch_4.val);
+        }
+      }
     }
     else if (serial_input == "exit")
     {
       break;
     }
   }
+}
+
+void isr_1()
+{
+  radio_readings.ch_1.ISR();
+}
+
+void isr_2()
+{
+  radio_readings.ch_2.ISR();
+}
+
+void isr_3()
+{
+  radio_readings.ch_3.ISR();
+}
+
+void isr_4()
+{
+  radio_readings.ch_4.ISR();
 }
 
 void setup()
@@ -562,10 +618,17 @@ void setup()
   odrv_connect(back_HIP);
   odrv_connect(back_KNEE);
 #endif
-  // radio.calibration();
-  config_sequence();
 
-  radio_readings.debug_ini();
+  pinMode(2, INPUT);
+  pinMode(3, INPUT);
+  pinMode(4, INPUT);
+  pinMode(5, INPUT);
+  attachInterrupt(2,isr_1,CHANGE);
+  attachInterrupt(3,isr_2,CHANGE);
+  attachInterrupt(4,isr_3,CHANGE);
+  attachInterrupt(5,isr_4,CHANGE);
+  radio_readings.ini(2,3,4,5,30,30,30,30);
+  config_sequence();
 
   Serial.println("ending setup");
 }
@@ -651,40 +714,40 @@ void loop()
       // {
       //   radio_readings.debug_update(1500, 1500, 1500, 1500);
       // }
-      if (millis()-test_timer < 5*1000 && !manual_stop)
-      {
-        radio_readings.debug_update(1500,1500,1000,1500);
-      }
-      else if (millis()-test_timer <= 10*1000 && !manual_stop)
-      {
-        radio_readings.debug_update(1000,1000,1500,1000);
-      }
-      else if (millis()-test_timer <= 15*1000 && !manual_stop)
-      {
-        radio_readings.debug_update(2000,1000,1000,2000);
-      }
-      else if (millis()-test_timer <= 20*1000 && !manual_stop)
-      {
-        radio_readings.debug_update(1000,1000,2000,1000);
-      }
-      else if (millis()-test_timer <= 45*1000 && !manual_stop)
-      {
-        radio_readings.debug_update(2000,2000,1500,2000);
-      }
-      else if (millis()-test_timer <= 50*1000 && !manual_stop)
-      {
-        radio_readings.debug_update(2000,2000,2000,2000);
-      }
-      else if (millis()-test_timer <= 75*1000 && !manual_stop)
-      {
-        radio_readings.debug_update(1000,1500,1000,1500);
-      }
-      else
-      {
-        radio_readings.debug_update(1500, 1500, 1500, 1500);
-      }
+      // if (millis()-test_timer < 5*1000 && !manual_stop)
+      // {
+      //   radio_readings.debug_update(1500,1500,1000,1500);
+      // }
+      // else if (millis()-test_timer <= 10*1000 && !manual_stop)
+      // {
+      //   radio_readings.debug_update(1000,1000,1500,1000);
+      // }
+      // else if (millis()-test_timer <= 15*1000 && !manual_stop)
+      // {
+      //   radio_readings.debug_update(2000,1000,1000,2000);
+      // }
+      // else if (millis()-test_timer <= 20*1000 && !manual_stop)
+      // {
+      //   radio_readings.debug_update(1000,1000,2000,1000);
+      // }
+      // else if (millis()-test_timer <= 45*1000 && !manual_stop)
+      // {
+      //   radio_readings.debug_update(2000,2000,1500,2000);
+      // }
+      // else if (millis()-test_timer <= 50*1000 && !manual_stop)
+      // {
+      //   radio_readings.debug_update(2000,2000,2000,2000);
+      // }
+      // else if (millis()-test_timer <= 75*1000 && !manual_stop)
+      // {
+      //   radio_readings.debug_update(1000,1500,1000,1500);
+      // }
+      // else
+      // {
+      //   radio_readings.debug_update(1500, 1500, 1500, 1500);
+      // }
 
-
+      radio_readings.update();
       qPed.update(kine_time, radio_readings);
 
       Serial.print("Actual time: ");
