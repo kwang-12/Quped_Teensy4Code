@@ -34,11 +34,13 @@ float leg_pos_offset_horizontal = 0.03;
 
 radio radio_readings;
 //0.075 3 2
-kinematics qPed(0.05, 2, 1, 0.35, 0.20, leg_pos_offset_forward, leg_pos_offset_horizontal);
+kinematics qPed(0.05, 2, 1, 0.35, 0.20, leg_pos_offset_forward, leg_pos_offset_horizontal,0.10,0.04,0.10,static_cast<float>(12) / 180 * PI_math);
 // kinematics qPed(0.075, 3, 2, 0.35，0.20，leg_pos_offset_forward， leg_pos_offset_horizontal);
 float kine_time = 0;
 int test_timer = 0;
 bool manual_stop = false;
+
+bool test_bool = true;
 
 program_state state = LOOP_IDLE;
 
@@ -628,6 +630,9 @@ void setup()
   attachInterrupt(4,isr_3,CHANGE);
   attachInterrupt(5,isr_4,CHANGE);
   radio_readings.ini(2,3,4,5,30,30,30,30);
+
+  // radio_readings.debug_ini();
+
   config_sequence();
 
   Serial.println("ending setup");
@@ -748,6 +753,9 @@ void loop()
       // }
 
       radio_readings.update();
+      
+      
+
       qPed.update(kine_time, radio_readings);
 
       Serial.print("Actual time: ");

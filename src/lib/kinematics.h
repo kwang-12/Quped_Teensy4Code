@@ -514,9 +514,13 @@ BLA::Matrix<4,4> tX_body2BRab ={0, 0,-1,-dimension_length/2,
             }
             else
             {
-                ab_rad_desired = 0;
-                hip_rad_desired = 0;
-                knee_rad_desired = 0;
+                // maintain current joint angles when no viabale solution
+                ab_rad_desired = ab_rad_now;
+                hip_rad_desired = hip_rad_now;
+                knee_rad_desired = knee_rad_now;
+                // ab_rad_desired = 0;
+                // hip_rad_desired = 0;
+                // knee_rad_desired = 0;
                 return false;
             }
         }
@@ -728,7 +732,7 @@ BLA::Matrix<4,4> tX_body2BRab ={0, 0,-1,-dimension_length/2,
     float pitch_target;
     float roll_target;
     float yaw_target;
-    float posture_k_p = 0.004 * msg_timer_interval/5;
+    float posture_k_p = 0.012 * msg_timer_interval/5;
     float posture_pitch_max;
     float posture_roll_max;
     float posture_yaw_max;
@@ -827,4 +831,9 @@ BLA::Matrix<4,4> tX_body2BRab ={0, 0,-1,-dimension_length/2,
      * 
      */
     void debug_print();
+
+    /**
+     * 
+     */
+    void update_gains(float kp_);
 };

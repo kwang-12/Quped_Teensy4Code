@@ -611,40 +611,40 @@ void kinematics::state_mgr(float& time_elapsed_)
         error = pitch_target - pos_now.pitch;
         output = pos_now.pitch + error * posture_k_p;
         // clamp the output in case of overflow/overshoot
-        if (output >= posture_pitch_max)
-        {
-            output = posture_pitch_max;
-        }
-        else if (output <= -1 * posture_pitch_max)
-        {
-            output = -1 * posture_pitch_max;
-        }
+        // if (output >= posture_pitch_max)
+        // {
+        //     output = posture_pitch_max;
+        // }
+        // else if (output <= -1 * posture_pitch_max)
+        // {
+        //     output = -1 * posture_pitch_max;
+        // }
         temp_posture.pitch = output;
         // roll
         error = roll_target - pos_now.roll;
         output = pos_now.roll + error * posture_k_p;
         // clamp the output in case of overflow/overshoot
-        if (output >= posture_roll_max)
-        {
-            output = posture_roll_max;
-        }
-        else if (output <= -1 * posture_roll_max)
-        {
-            output = -1 * posture_roll_max;
-        }
+        // if (output >= posture_roll_max)
+        // {
+        //     output = posture_roll_max;
+        // }
+        // else if (output <= -1 * posture_roll_max)
+        // {
+        //     output = -1 * posture_roll_max;
+        // }
         temp_posture.roll = output;
         // yaw
         error = yaw_target - pos_now.yaw;
         output = pos_now.yaw + error * posture_k_p;
         // clamp the output in case of overflow/overshoot
-        if (output >= posture_yaw_max)
-        {
-            output = posture_yaw_max;
-        }
-        else if (output <= -1 * posture_yaw_max)
-        {
-            output = -1 * posture_yaw_max;
-        }
+        // if (output >= posture_yaw_max)
+        // {
+        //     output = posture_yaw_max;
+        // }
+        // else if (output <= -1 * posture_yaw_max)
+        // {
+        //     output = -1 * posture_yaw_max;
+        // }
         temp_posture.yaw = output;
         body_iK(temp_posture);
     }
@@ -695,6 +695,11 @@ void kinematics::update(float &time_elapsed_, radio radio_readings)
 {
     calc_input(radio_readings);
     state_mgr(time_elapsed_);
+}
+
+void kinematics::update_gains(float kp_)
+{
+    posture_k_p = kp_;
 }
 
 void kinematics::debug_print()

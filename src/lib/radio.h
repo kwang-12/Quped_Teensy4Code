@@ -134,6 +134,10 @@ public:
                     }
                 }
             }
+            if (reverse_output)
+            {
+                val = -val;
+            }
             sei();
         }
 
@@ -172,11 +176,15 @@ public:
             if (!is_ch3_)
             {
                 default_val = (max + min)/2;
+                range_upper = max-default_val-2*blind_zone;
+                range_lower = max-default_val-2*blind_zone;
             }
             else
             {
                 is_ch3 = true;
                 default_val = min;
+                range_upper = (max-default_val-2*blind_zone)/2;
+                range_lower = (max-default_val-2*blind_zone)/2;
             }
             val = default_val;
             if (reverse_output_)
