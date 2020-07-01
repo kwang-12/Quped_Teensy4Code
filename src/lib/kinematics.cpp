@@ -39,12 +39,18 @@ void kinematics::reset()
     BL.init(tag_BL, posture_idle_height, leg_pos_offset_forward, leg_pos_offset_horizontal);
     BR.init(tag_BR, posture_idle_height, leg_pos_offset_forward, leg_pos_offset_horizontal);
     pos_now.update(0, 0, posture_idle_height, 0, 0, 0, FL, FR, BL, BR);
+    dist = 0;
+    posture_val_set = false;
+    posture_neutral_request = false;
+    gait = 1423;
+    ini_yaw = 0;
+    pitch_target = 0;
+    roll_target = 0;
+    yaw_target = 0;
+    leg_swing_choice = tag_FL;
     walk_state_task = TASK_IDLE;
     walk_mode = MODE_END;
     yaw_ini_flag = false;
-    leg_swing_choice = tag_FL;
-    posture_val_set = false;
-    posture_neutral_request = false;
 }
 
 void kinematics::calc_input(radio radio_readings)
@@ -199,7 +205,7 @@ void kinematics::update_posture_tx(Point p, Point q, Point r, Point s)
 
     BLA::Multiply(t1, tx, Target);
     
-    float dist = sqrt(pow(input.x_target, 2)+pow(input.y_target, 2));
+    dist = sqrt(pow(input.x_target, 2)+pow(input.y_target, 2));
 }
 
 void kinematics::update_posture_FL(Point p, Point q, Point r, Point s)
@@ -703,7 +709,7 @@ void kinematics::swing_mgr()
         else if (BR.swing_complete == false)
         {
             BR.swing_complete = true;
-            leg_swing_choice = tag_BL;
+            leg_swing_choice = tag_FL;
         }
     }
     else if (gait == 1432)
@@ -833,27 +839,27 @@ void kinematics::walk_mgr(float &time_elapsed_)
                     update_posture();
                     posture_val_set = true;     ///////// not checked yet
 
-                    if (dist >= 0.04 && abs(input.x_target) >= abs(input.y_target) && input.x_target >= 0)              // FORWARD
+                    if (dist >= 0.02 && abs(input.x_target) >= abs(input.y_target) && input.x_target >= 0)              // FORWARD
                     {
                         gait = 1423;
                     }
-                    else if (dist >= 0.04 && abs(input.x_target) >= abs(input.y_target) && input.x_target < 0)         // BACKWARD
+                    else if (dist >= 0.02 && abs(input.x_target) >= abs(input.y_target) && input.x_target < 0)         // BACKWARD
                     {
                         gait = 1324;
                     }
-                    else if (dist >= 0.04 && abs(input.x_target) < abs(input.y_target) && input.y_target >= 0)         // LEFT
+                    else if (dist >= 0.02 && abs(input.x_target) < abs(input.y_target) && input.y_target >= 0)         // LEFT
                     {
                         gait = 1432;
                     }
-                    else if (dist >= 0.04 && abs(input.x_target) < abs(input.y_target) && input.y_target < 0)         // RIGHT
+                    else if (dist >= 0.02 && abs(input.x_target) < abs(input.y_target) && input.y_target < 0)         // RIGHT
                     {
                         gait = 1234;
                     }
-                    else if (dist < 0.04 && input.yaw_target >= 0)          // CCW
+                    else if (dist < 0.02 && input.yaw_target >= 0)          // CCW
                     {
                         gait = 1342;
                     }
-                    else if (dist < 0.04 && input.yaw_target < 0)           // CW
+                    else if (dist < 0.02 && input.yaw_target < 0)           // CW
                     {
                         gait = 1243;
                     }
@@ -932,27 +938,27 @@ void kinematics::walk_mgr(float &time_elapsed_)
                         posture_neutral_request = true;
                     }
                     
-                    if (dist >= 0.04 && abs(input.x_target) >= abs(input.y_target) && input.x_target >= 0)              // FORWARD
+                    if (dist >= 0.02 && abs(input.x_target) >= abs(input.y_target) && input.x_target >= 0)              // FORWARD
                     {
                         gait = 1423;
                     }
-                    else if (dist >= 0.04 && abs(input.x_target) >= abs(input.y_target) && input.x_target < 0)         // BACKWARD
+                    else if (dist >= 0.02 && abs(input.x_target) >= abs(input.y_target) && input.x_target < 0)         // BACKWARD
                     {
                         gait = 1324;
                     }
-                    else if (dist >= 0.04 && abs(input.x_target) < abs(input.y_target) && input.y_target >= 0)         // LEFT
+                    else if (dist >= 0.02 && abs(input.x_target) < abs(input.y_target) && input.y_target >= 0)         // LEFT
                     {
                         gait = 1432;
                     }
-                    else if (dist >= 0.04 && abs(input.x_target) < abs(input.y_target) && input.y_target < 0)         // RIGHT
+                    else if (dist >= 0.02 && abs(input.x_target) < abs(input.y_target) && input.y_target < 0)         // RIGHT
                     {
                         gait = 1234;
                     }
-                    else if (dist < 0.04 && input.yaw_target >= 0)          // CCW
+                    else if (dist < 0.02 && input.yaw_target >= 0)          // CCW
                     {
                         gait = 1342;
                     }
-                    else if (dist < 0.04 && input.yaw_target < 0)           // CW
+                    else if (dist < 0.02 && input.yaw_target < 0)           // CW
                     {
                         gait = 1243;
                     }
@@ -1096,7 +1102,126 @@ void kinematics::update_gains(float kp_)
 void kinematics::debug_print()
 {
     Serial.print("Gait:");
-    Serial.println(gait);
+    if (gait == 1423)
+    {
+        if (leg_swing_choice == tag_FL)
+        {
+            Serial.print("(1)423");
+        }
+        else if (leg_swing_choice == tag_BR)
+        {
+            Serial.print("1(4)23");
+        }
+        else if (leg_swing_choice == tag_FR)
+        {
+            Serial.print("14(2)3");
+        }
+        else if (leg_swing_choice == tag_BL)
+        {
+            Serial.print("142(3)");
+        }
+        Serial.println(" FORWARD");
+    }
+    else if (gait == 1324)
+    {
+        if (leg_swing_choice == tag_FL)
+        {
+            Serial.print("(1)324");
+        }
+        else if (leg_swing_choice == tag_BR)
+        {
+            Serial.print("132(4)");
+        }
+        else if (leg_swing_choice == tag_FR)
+        {
+            Serial.print("13(2)4");
+        }
+        else if (leg_swing_choice == tag_BL)
+        {
+            Serial.print("1(3)24");
+        }
+        Serial.println(" BACKWARD");
+    }
+    else if (gait == 1432)
+    {
+        if (leg_swing_choice == tag_FL)
+        {
+            Serial.print("(1)432");
+        }
+        else if (leg_swing_choice == tag_BR)
+        {
+            Serial.print("1(4)32");
+        }
+        else if (leg_swing_choice == tag_FR)
+        {
+            Serial.print("143(2)");
+        }
+        else if (leg_swing_choice == tag_BL)
+        {
+            Serial.print("14(3)2");
+        }
+        Serial.println(" LEFT");
+    }
+    else if (gait == 1234)
+    {
+        if (leg_swing_choice == tag_FL)
+        {
+            Serial.print("(1)234");
+        }
+        else if (leg_swing_choice == tag_BR)
+        {
+            Serial.print("123(4)");
+        }
+        else if (leg_swing_choice == tag_FR)
+        {
+            Serial.print("1(2)34");
+        }
+        else if (leg_swing_choice == tag_BL)
+        {
+            Serial.print("12(3)4");
+        }
+        Serial.println(" RIGHT");
+    }
+    else if (gait == 1342)
+    {
+        if (leg_swing_choice == tag_FL)
+        {
+            Serial.print("(1)342");
+        }
+        else if (leg_swing_choice == tag_BR)
+        {
+            Serial.print("13(4)2");
+        }
+        else if (leg_swing_choice == tag_FR)
+        {
+            Serial.print("134(2)");
+        }
+        else if (leg_swing_choice == tag_BL)
+        {
+            Serial.print("1(3)42");
+        }
+        Serial.println(" CCW");
+    }
+    else if (gait == 1243)
+    {
+        if (leg_swing_choice == tag_FL)
+        {
+            Serial.print("(1)243");
+        }
+        else if (leg_swing_choice == tag_BR)
+        {
+            Serial.print("12(4)3");
+        }
+        else if (leg_swing_choice == tag_FR)
+        {
+            Serial.print("1(2)43");
+        }
+        else if (leg_swing_choice == tag_BL)
+        {
+            Serial.print("124(3)");
+        }
+        Serial.println(" CW");
+    }
 
     Serial.print("(1) FL - x: ");
     Serial.print(pos_now.tX_Ground2FL_end(0,3),4);

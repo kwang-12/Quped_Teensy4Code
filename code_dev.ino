@@ -34,7 +34,7 @@ float leg_pos_offset_horizontal = 0.03;
 
 radio radio_readings;
 //0.075 3 2
-kinematics qPed(0.05, 1, 1, 0.35, 0.20, leg_pos_offset_forward, leg_pos_offset_horizontal,0.10,0.04,0.10,static_cast<float>(12) / 180 * PI_math);
+kinematics qPed(0.075, 2, 1, 0.35, 0.20, leg_pos_offset_forward, leg_pos_offset_horizontal,0.10,0.04,0.10,static_cast<float>(12) / 180 * PI_math);
 // kinematics qPed(0.075, 3, 2, 0.35，0.20，leg_pos_offset_forward， leg_pos_offset_horizontal);
 float kine_time = 0;
 int test_timer = 0;
