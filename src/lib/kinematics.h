@@ -183,6 +183,10 @@ BLA::Matrix<4,4> tX_body2BRab ={0, 0,-1,-dimension_length/2,
                             {
                                 in_workspace_[loop_counter] = false;
                             }
+                            if (theta_3[loop_counter] > knee_rad_max || theta_3[loop_counter] < -knee_rad_max)      // calculated solution is out of joint bound
+                            {
+                                in_workspace_[loop_counter] = false;
+                            }
                             // determine theta_2
                             if (in_workspace_[loop_counter] == true)
                             {
@@ -205,6 +209,10 @@ BLA::Matrix<4,4> tX_body2BRab ={0, 0,-1,-dimension_length/2,
                                 {
                                     in_workspace_[loop_counter] = false;
                                 }
+                                if (theta_2[loop_counter] > hip_rad_max || theta_2[loop_counter] < -hip_rad_max)      // calculated solution is out of joint bound
+                                {
+                                    in_workspace_[loop_counter] = false;
+                                }
                                 // determine theta_1
                                 if (in_workspace_[loop_counter] == true)
                                 {
@@ -224,6 +232,10 @@ BLA::Matrix<4,4> tX_body2BRab ={0, 0,-1,-dimension_length/2,
                                         }
                                     }
                                     else
+                                    {
+                                        in_workspace_[loop_counter] = false;
+                                    }
+                                    if (theta_1[loop_counter] > ab_rad_max || theta_1[loop_counter] < -ab_rad_max)      // calculated solution is out of joint bound
                                     {
                                         in_workspace_[loop_counter] = false;
                                     }
@@ -261,6 +273,10 @@ BLA::Matrix<4,4> tX_body2BRab ={0, 0,-1,-dimension_length/2,
                             {
                                 in_workspace_[loop_counter] = false;
                             }
+                            if (theta_3[loop_counter] > knee_rad_max || theta_3[loop_counter] < -knee_rad_max)      // calculated solution is out of joint bound
+                            {
+                                in_workspace_[loop_counter] = false;
+                            }
                             // determine theta_2
                             if (in_workspace_[loop_counter] == true)
                             {
@@ -283,6 +299,10 @@ BLA::Matrix<4,4> tX_body2BRab ={0, 0,-1,-dimension_length/2,
                                 {
                                     in_workspace_[loop_counter] = false;
                                 }
+                                if (theta_2[loop_counter] > hip_rad_max || theta_2[loop_counter] < -hip_rad_max)      // calculated solution is out of joint bound
+                                {
+                                    in_workspace_[loop_counter] = false;
+                                }
                                 // determine theta_1
                                 if (in_workspace_[loop_counter] == true)
                                 {
@@ -302,6 +322,10 @@ BLA::Matrix<4,4> tX_body2BRab ={0, 0,-1,-dimension_length/2,
                                         }
                                     }
                                     else
+                                    {
+                                        in_workspace_[loop_counter] = false;
+                                    }
+                                    if (theta_1[loop_counter] > ab_rad_max || theta_1[loop_counter] < -ab_rad_max)      // calculated solution is out of joint bound
                                     {
                                         in_workspace_[loop_counter] = false;
                                     }
@@ -339,6 +363,10 @@ BLA::Matrix<4,4> tX_body2BRab ={0, 0,-1,-dimension_length/2,
                             {
                                 in_workspace_[loop_counter] = false;
                             }
+                            if (theta_3[loop_counter] > knee_rad_max || theta_3[loop_counter] < -knee_rad_max)      // calculated solution is out of joint bound
+                            {
+                                in_workspace_[loop_counter] = false;
+                            }
                             // determine theta_2
                             if (in_workspace_[loop_counter] == true)
                             {
@@ -361,6 +389,10 @@ BLA::Matrix<4,4> tX_body2BRab ={0, 0,-1,-dimension_length/2,
                                 {
                                     in_workspace_[loop_counter] = false;
                                 }
+                                if (theta_2[loop_counter] > hip_rad_max || theta_2[loop_counter] < -hip_rad_max)      // calculated solution is out of joint bound
+                                {
+                                    in_workspace_[loop_counter] = false;
+                                }
                                 // determine theta_1
                                 if (in_workspace_[loop_counter] == true)
                                 {
@@ -380,6 +412,10 @@ BLA::Matrix<4,4> tX_body2BRab ={0, 0,-1,-dimension_length/2,
                                         }
                                     }
                                     else
+                                    {
+                                        in_workspace_[loop_counter] = false;
+                                    }
+                                    if (theta_1[loop_counter] > ab_rad_max || theta_1[loop_counter] < -ab_rad_max)      // calculated solution is out of joint bound
                                     {
                                         in_workspace_[loop_counter] = false;
                                     }
@@ -417,6 +453,10 @@ BLA::Matrix<4,4> tX_body2BRab ={0, 0,-1,-dimension_length/2,
                             {
                                 in_workspace_[loop_counter] = false;
                             }
+                            if (theta_3[loop_counter] > knee_rad_max || theta_3[loop_counter] < -knee_rad_max)      // calculated solution is out of joint bound
+                            {
+                                in_workspace_[loop_counter] = false;
+                            }
                             // determine theta_2
                             if (in_workspace_[loop_counter] == true)
                             {
@@ -439,6 +479,10 @@ BLA::Matrix<4,4> tX_body2BRab ={0, 0,-1,-dimension_length/2,
                                 {
                                     in_workspace_[loop_counter] = false;
                                 }
+                                if (theta_2[loop_counter] > hip_rad_max || theta_2[loop_counter] < -hip_rad_max)      // calculated solution is out of joint bound
+                                {
+                                    in_workspace_[loop_counter] = false;
+                                }
                                 // determine theta_1
                                 if (in_workspace_[loop_counter] == true)
                                 {
@@ -458,6 +502,10 @@ BLA::Matrix<4,4> tX_body2BRab ={0, 0,-1,-dimension_length/2,
                                         }
                                     }
                                     else
+                                    {
+                                        in_workspace_[loop_counter] = false;
+                                    }
+                                    if (theta_1[loop_counter] > ab_rad_max || theta_1[loop_counter] < -ab_rad_max)      // calculated solution is out of joint bound
                                     {
                                         in_workspace_[loop_counter] = false;
                                     }
@@ -721,6 +769,7 @@ BLA::Matrix<4,4> tX_body2BRab ={0, 0,-1,-dimension_length/2,
     body_simp pos_ini; // posture shift - initial posture
     body_simp pos_end; // posture shift - target posture
     BLA::Matrix<4, 4> Target;
+    float dist;                           // distance between inital COB and target COB
     float margin;                         // posture shift - stability margin
     float posture_time_span;              // time allotted to shifting posture
     bool posture_val_set = false;         // true - pos_ini and pos_end are updated
@@ -791,6 +840,36 @@ BLA::Matrix<4,4> tX_body2BRab ={0, 0,-1,-dimension_length/2,
      * Determine states based on radio inputs
      */
     void calc_input(radio radio_readings);
+
+    /**
+     * 
+     */
+    void update_posture_tx(Point p, Point q, Point r, Point s);
+
+    /**
+     * 
+     */
+    void update_posture_FL(Point p, Point q, Point r, Point s);
+
+    /**
+     * 
+     */
+    void update_posture_FR(Point p, Point q, Point r, Point s);
+
+    /**
+     * 
+     */
+    void update_posture_BL(Point p, Point q, Point r, Point s);
+
+    /**
+     * 
+     */
+    void update_posture_BR(Point p, Point q, Point r, Point s);
+
+    /**
+     * 
+     */
+    void update_posture_neutral(Point p, Point q, Point r, Point s);
 
     /**
      * Update motion targets

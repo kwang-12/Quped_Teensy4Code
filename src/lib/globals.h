@@ -74,6 +74,10 @@ const float dimension_d2 = 0.092;
 const float dimension_length = 0.517;
 const float dimension_width = 0.2;
 
+const float ab_rad_max = (70.0f)/180*PI_math;
+const float hip_rad_max = (70.0f)/180*PI_math;
+const float knee_rad_max = (125.0f)/180*PI_math;
+
 
 enum leg_tag
 {

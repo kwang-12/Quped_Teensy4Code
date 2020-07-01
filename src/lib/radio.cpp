@@ -8,8 +8,8 @@ void radio::ini(int ch_1_pin, int ch_2_pin, int ch_3_pin, int ch_4_pin,
                 long blind_1,  long blind_2, 
                 long blind_3,  long blind_4)
 {
-    ch_1.ini(ch_1_pin, blind_1, false, false);
-    ch_2.ini(ch_2_pin, blind_2, false, true);
+    ch_1.ini(ch_1_pin, blind_1, false, true);
+    ch_2.ini(ch_2_pin, blind_2, false, false);
     ch_3.ini(ch_3_pin, blind_3, true, false);
     ch_4.ini(ch_4_pin, blind_4, false, true);
 }

@@ -171,6 +171,83 @@ void kinematics::calc_input(radio radio_readings)
     }
 }
 
+void kinematics::update_posture_tx(Point p, Point q, Point r, Point s)
+{
+    // At the beginning of the gait cycle:
+    // Calculate desired body posture by the end of the gait cycle
+    // current body posture transformation (relative to ground)
+    Point poly_2[] = {p, q, r, s};
+    int poly_2_n = 4;
+    Point centroid = calc_newCOB(p, q, r, s, poly_2, poly_2_n, -1);
+    BLA::Matrix<4, 1> position = {centroid.x, centroid.y, pos_now.height, 1};
+    BLA::Matrix<4, 4> t1 = pos_now.tX_Ground2Body.Submatrix(BLA::Slice<0,4>(),BLA::Slice<0,3>()) || position;
+    // initialize yaw target for the gait cycle
+    yaw_target = input.yaw_target;
+    // desired body posture transformation (relative to body)
+    float Sx = sin(0);
+    float Cx = cos(0);
+    float Sy = sin(0);
+    float Cy = cos(0);
+    float Sz = sin(yaw_target);
+    float Cz = cos(yaw_target);
+    BLA::Matrix<4, 3> tx_R = {Cy * Cz, Cz * Sx * Sy - Cx * Sz, Sx * Sz + Cx * Cz * Sy,
+                            Cy * Sz, Cx * Cz + Sx * Sy * Sz, Cx * Sy * Sz - Cz * Sx,
+                            -Sy, Cy * Sx, Cx * Cy,
+                            0, 0, 0};
+    BLA::Matrix<4, 1> tx_P = {input.x_target, input.y_target, 0, 1};
+    BLA::Matrix<4, 4> tx = tx_R || tx_P;
+
+    BLA::Multiply(t1, tx, Target);
+    
+    float dist = sqrt(pow(input.x_target, 2)+pow(input.y_target, 2));
+}
+
+void kinematics::update_posture_FL(Point p, Point q, Point r, Point s)
+{
+    Point poly[] = {q, r, s};
+    int poly_n = 3;
+    Point new_COB = calc_newCOB(p, r, q, s, poly, poly_n, margin);
+    pos_end.forward = new_COB.x;
+    pos_end.horizontal = new_COB.y;
+}
+
+void kinematics::update_posture_BR(Point p, Point q, Point r, Point s)
+{
+    Point poly[] = {p, q, s};
+    int poly_n = 3;
+    Point new_COB = calc_newCOB(r, p, q, s, poly, poly_n, margin);
+    pos_end.forward = new_COB.x;
+    pos_end.horizontal = new_COB.y;
+}
+
+void kinematics::update_posture_FR(Point p, Point q, Point r, Point s)
+{
+    Point poly[] = {p, r, s};
+    int poly_n = 3;
+    Point new_COB = calc_newCOB(q, s, p, r, poly, poly_n, margin);
+    pos_end.forward = new_COB.x;
+    pos_end.horizontal = new_COB.y;
+}
+
+void kinematics::update_posture_BL(Point p, Point q, Point r, Point s)
+{
+    Point poly[] = {p, q, r};
+    int poly_n = 3;
+    Point new_COB = calc_newCOB(s, q, p, r, poly, poly_n, margin);
+    pos_end.forward = new_COB.x;
+    pos_end.horizontal = new_COB.y;
+}
+
+void kinematics::update_posture_neutral(Point p, Point q, Point r, Point s)
+{
+    Point poly[] = {p, q, r, s};
+    int poly_n = 4;
+    Point centroid = calc_newCOB(r, s, p, q, poly, poly_n, -1);
+    pos_end.forward = centroid.x;
+    pos_end.horizontal = centroid.y;
+    pos_end.yaw = pos_ini.yaw;
+}
+
 void kinematics::update_posture()
 {
     Point p, q, r, s;
@@ -198,71 +275,22 @@ void kinematics::update_posture()
             {
                 if (yaw_ini_flag == false)
                 {
-                    // At the beginning of the gait cycle:
-                    // Calculate desired body posture by the end of the gait cycle
-                    // current body posture transformation (relative to ground)
-                    Point poly_2[] = {p, q, r, s};
-                    int poly_2_n = 4;
-                    Point centroid = calc_newCOB(p, q, r, s, poly_2, poly_2_n, -1);
-                    BLA::Matrix<4, 1> position = {centroid.x, centroid.y, pos_now.height, 1};
-                    BLA::Matrix<4, 4> t1 = pos_now.tX_Ground2Body.Submatrix(BLA::Slice<0,4>(),BLA::Slice<0,3>()) || position;
-                    // initialize yaw target for the gait cycle
-                    yaw_target = input.yaw_target;
-                    // desired body posture transformation (relative to body)
-                    float Sx = sin(0);
-                    float Cx = cos(0);
-                    float Sy = sin(0);
-                    float Cy = cos(0);
-                    float Sz = sin(yaw_target);
-                    float Cz = cos(yaw_target);
-                    BLA::Matrix<4, 3> tx_R = {Cy * Cz, Cz * Sx * Sy - Cx * Sz, Sx * Sz + Cx * Cz * Sy,
-                                            Cy * Sz, Cx * Cz + Sx * Sy * Sz, Cx * Sy * Sz - Cz * Sx,
-                                            -Sy, Cy * Sx, Cx * Cy,
-                                            0, 0, 0};
-                    BLA::Matrix<4, 1> tx_P = {input.x_target, input.y_target, 0, 1};
-                    BLA::Matrix<4, 4> tx = tx_R || tx_P;
-
-                    BLA::Multiply(t1, tx, Target);
-
+                    update_posture_tx(p,q,r,s);
                     yaw_ini_flag = true;
                 }
-                Point poly[] = {q, r, s};
-                int poly_n = 3;
-                Point new_COB = calc_newCOB(p, r, q, s, poly, poly_n, margin);
-                // Point new_COB = calc_newCOB(q, s, poly, poly_n, margin);
-                // Point new_COB = calc_newCOB(q, s, poly, poly_n, -1);
-                pos_end.forward = new_COB.x;
-                pos_end.horizontal = new_COB.y;
+                update_posture_FL(p,q,r,s);
             }
             else if (BR.swing_complete == false)
             {
-                Point poly[] = {p, q, s};
-                int poly_n = 3;
-                Point new_COB = calc_newCOB(r, p, q, s, poly, poly_n, margin);
-                // Point new_COB = calc_newCOB(q, s, poly, poly_n, margin);
-                // Point new_COB = calc_newCOB(q, s, poly, poly_n, -1);
-                pos_end.forward = new_COB.x;
-                pos_end.horizontal = new_COB.y;
+                update_posture_BR(p,q,r,s);
             }
             else if (FR.swing_complete == false)
             {
-                Point poly[] = {p, r, s};
-                int poly_n = 3;
-                Point new_COB = calc_newCOB(q, s, p, r, poly, poly_n, margin);
-                // Point new_COB = calc_newCOB(p, r, poly, poly_n, margin);
-                // Point new_COB = calc_newCOB(p, r, poly, poly_n, -1);
-                pos_end.forward = new_COB.x;
-                pos_end.horizontal = new_COB.y;
+                update_posture_FR(p,q,r,s);
             }
             else if (BL.swing_complete == false)
             {
-                Point poly[] = {p, q, r};
-                int poly_n = 3;
-                Point new_COB = calc_newCOB(s, q, p, r, poly, poly_n, margin);
-                // Point new_COB = calc_newCOB(p, r, poly, poly_n, margin);
-                // Point new_COB = calc_newCOB(p, r, poly, poly_n, -1);
-                pos_end.forward = new_COB.x;
-                pos_end.horizontal = new_COB.y;
+                update_posture_BL(p,q,r,s);
             }
             if (fabs(yaw_target) < 0.0000000001)
             {
@@ -275,12 +303,202 @@ void kinematics::update_posture()
         }
         else // move to neutral position
         {
-            Point poly[] = {p, q, r, s};
-            int poly_n = 4;
-            Point centroid = calc_newCOB(r, s, p, q, poly, poly_n, -1);
-            pos_end.forward = centroid.x;
-            pos_end.horizontal = centroid.y;
-            pos_end.yaw = pos_ini.yaw;
+            update_posture_neutral(p,q,r,s);
+        }
+    }
+    else if (gait == 1324)
+    {
+        if (posture_neutral_request == false) // shift posture based on gait choice
+        {
+            if (FL.swing_complete == false)
+            {
+                if (yaw_ini_flag == false)
+                {
+                    update_posture_tx(p,q,r,s);
+                    yaw_ini_flag = true;
+                }
+                update_posture_FL(p,q,r,s);
+            }
+            else if (BL.swing_complete == false)
+            {
+                update_posture_BL(p,q,r,s);
+            }
+            else if (FR.swing_complete == false)
+            {
+                update_posture_FR(p,q,r,s);
+            }
+            else if (BR.swing_complete == false)
+            {
+                update_posture_BR(p,q,r,s);
+            }
+            if (fabs(yaw_target) < 0.0000000001)
+            {
+                pos_end.yaw = pos_ini.yaw;
+            }
+            else
+            {
+                pos_end.yaw = yaw_target * 0.25 + pos_ini.yaw;
+            }
+        }
+        else // move to neutral position
+        {
+            update_posture_neutral(p,q,r,s);
+        }
+    }    
+    else if (gait == 1432)
+    {
+        if (posture_neutral_request == false) // shift posture based on gait choice
+        {
+            if (FL.swing_complete == false)
+            {
+                if (yaw_ini_flag == false)
+                {
+                    update_posture_tx(p,q,r,s);
+                    yaw_ini_flag = true;
+                }
+                update_posture_FL(p,q,r,s);
+            }
+            else if (BR.swing_complete == false)
+            {
+                update_posture_BR(p,q,r,s);
+            }
+            else if (BL.swing_complete == false)
+            {
+                update_posture_BL(p,q,r,s);
+            }
+            else if (FR.swing_complete == false)
+            {
+                update_posture_FR(p,q,r,s);
+            }
+            if (fabs(yaw_target) < 0.0000000001)
+            {
+                pos_end.yaw = pos_ini.yaw;
+            }
+            else
+            {
+                pos_end.yaw = yaw_target * 0.25 + pos_ini.yaw;
+            }
+        }
+        else // move to neutral position
+        {
+            update_posture_neutral(p,q,r,s);
+        }
+    }
+    else if (gait == 1234)
+    {
+        if (posture_neutral_request == false) // shift posture based on gait choice
+        {
+            if (FL.swing_complete == false)
+            {
+                if (yaw_ini_flag == false)
+                {
+                    update_posture_tx(p,q,r,s);
+                    yaw_ini_flag = true;
+                }
+                update_posture_FL(p,q,r,s);
+            }
+            else if (FR.swing_complete == false)
+            {
+                update_posture_FR(p,q,r,s);
+            }
+            else if (BL.swing_complete == false)
+            {
+                update_posture_BL(p,q,r,s);
+            }
+            else if (BR.swing_complete == false)
+            {
+                update_posture_BR(p,q,r,s);
+            }
+            if (fabs(yaw_target) < 0.0000000001)
+            {
+                pos_end.yaw = pos_ini.yaw;
+            }
+            else
+            {
+                pos_end.yaw = yaw_target * 0.25 + pos_ini.yaw;
+            }
+        }
+        else // move to neutral position
+        {
+            update_posture_neutral(p,q,r,s);
+        }
+    }
+    else if (gait == 1342)
+    {
+        if (posture_neutral_request == false) // shift posture based on gait choice
+        {
+            if (FL.swing_complete == false)
+            {
+                if (yaw_ini_flag == false)
+                {
+                    update_posture_tx(p,q,r,s);
+                    yaw_ini_flag = true;
+                }
+                update_posture_FL(p,q,r,s);
+            }
+            else if (BL.swing_complete == false)
+            {
+                update_posture_BL(p,q,r,s);
+            }
+            else if (BR.swing_complete == false)
+            {
+                update_posture_BR(p,q,r,s);
+            }
+            else if (FR.swing_complete == false)
+            {
+                update_posture_FR(p,q,r,s);
+            }
+            if (fabs(yaw_target) < 0.0000000001)
+            {
+                pos_end.yaw = pos_ini.yaw;
+            }
+            else
+            {
+                pos_end.yaw = yaw_target * 0.25 + pos_ini.yaw;
+            }
+        }
+        else // move to neutral position
+        {
+            update_posture_neutral(p,q,r,s);
+        }
+    }
+    else if (gait == 1243)
+    {
+        if (posture_neutral_request == false) // shift posture based on gait choice
+        {
+            if (FL.swing_complete == false)
+            {
+                if (yaw_ini_flag == false)
+                {
+                    update_posture_tx(p,q,r,s);
+                    yaw_ini_flag = true;
+                }
+                update_posture_FL(p,q,r,s);
+            }
+            else if (FR.swing_complete == false)
+            {
+                update_posture_FR(p,q,r,s);
+            }
+            else if (BR.swing_complete == false)
+            {
+                update_posture_BR(p,q,r,s);
+            }
+            else if (BL.swing_complete == false)
+            {
+                update_posture_BL(p,q,r,s);
+            }
+            if (fabs(yaw_target) < 0.0000000001)
+            {
+                pos_end.yaw = pos_ini.yaw;
+            }
+            else
+            {
+                pos_end.yaw = yaw_target * 0.25 + pos_ini.yaw;
+            }
+        }
+        else // move to neutral position
+        {
+            update_posture_neutral(p,q,r,s);
         }
     }
 }
@@ -465,6 +683,121 @@ void kinematics::swing_mgr()
             leg_swing_choice = tag_FL;
         }
     }
+    else if (gait == 1324)
+    {
+        if (FL.swing_complete == false)
+        {
+            FL.swing_complete = true;
+            leg_swing_choice = tag_BL;
+        }
+        else if (BL.swing_complete == false)
+        {
+            BL.swing_complete = true;
+            leg_swing_choice = tag_FR;
+        }
+        else if (FR.swing_complete == false)
+        {
+            FR.swing_complete = true;
+            leg_swing_choice = tag_BR;
+        }
+        else if (BR.swing_complete == false)
+        {
+            BR.swing_complete = true;
+            leg_swing_choice = tag_BL;
+        }
+    }
+    else if (gait == 1432)
+    {
+        if (FL.swing_complete == false)
+        {
+            FL.swing_complete = true;
+            leg_swing_choice = tag_BR;
+        }
+        else if (BR.swing_complete == false)
+        {
+            BR.swing_complete = true;
+            leg_swing_choice = tag_BL;
+        }
+        else if (BL.swing_complete == false)
+        {
+            BL.swing_complete = true;
+            leg_swing_choice = tag_FR;
+        }
+        else if (FR.swing_complete == false)
+        {
+            FR.swing_complete = true;
+            leg_swing_choice = tag_FL;
+        }
+    }
+    else if (gait == 1234)
+    {
+        if (FL.swing_complete == false)
+        {
+            FL.swing_complete = true;
+            leg_swing_choice = tag_FR;
+        }
+        else if (FR.swing_complete == false)
+        {
+            FR.swing_complete = true;
+            leg_swing_choice = tag_BL;
+        }
+        else if (BL.swing_complete == false)
+        {
+            BL.swing_complete = true;
+            leg_swing_choice = tag_BR;
+        }
+        else if (BR.swing_complete == false)
+        {
+            BR.swing_complete = true;
+            leg_swing_choice = tag_FL;
+        }
+    }
+    else if (gait == 1342)
+    {
+        if (FL.swing_complete == false)
+        {
+            FL.swing_complete = true;
+            leg_swing_choice = tag_BL;
+        }
+        else if (BL.swing_complete == false)
+        {
+            BL.swing_complete = true;
+            leg_swing_choice = tag_BR;
+        }
+        else if (BR.swing_complete == false)
+        {
+            BR.swing_complete = true;
+            leg_swing_choice = tag_FR;
+        }
+        else if (FR.swing_complete == false)
+        {
+            FR.swing_complete = true;
+            leg_swing_choice = tag_FL;
+        }
+    }
+    else if (gait == 1243)
+    {
+        if (FL.swing_complete == false)
+        {
+            FL.swing_complete = true;
+            leg_swing_choice = tag_FR;
+        }
+        else if (FR.swing_complete == false)
+        {
+            FR.swing_complete = true;
+            leg_swing_choice = tag_BR;
+        }
+        else if (BR.swing_complete == false)
+        {
+            BR.swing_complete = true;
+            leg_swing_choice = tag_BL;
+        }
+        else if (BL.swing_complete == false)
+        {
+            BL.swing_complete = true;
+            leg_swing_choice = tag_FL;
+        }
+    }
 }
 
 void kinematics::walk_mgr(float &time_elapsed_)
@@ -499,6 +832,35 @@ void kinematics::walk_mgr(float &time_elapsed_)
                 {
                     update_posture();
                     posture_val_set = true;     ///////// not checked yet
+
+                    if (dist >= 0.04 && abs(input.x_target) >= abs(input.y_target) && input.x_target >= 0)              // FORWARD
+                    {
+                        gait = 1423;
+                    }
+                    else if (dist >= 0.04 && abs(input.x_target) >= abs(input.y_target) && input.x_target < 0)         // BACKWARD
+                    {
+                        gait = 1324;
+                    }
+                    else if (dist >= 0.04 && abs(input.x_target) < abs(input.y_target) && input.y_target >= 0)         // LEFT
+                    {
+                        gait = 1432;
+                    }
+                    else if (dist >= 0.04 && abs(input.x_target) < abs(input.y_target) && input.y_target < 0)         // RIGHT
+                    {
+                        gait = 1234;
+                    }
+                    else if (dist < 0.04 && input.yaw_target >= 0)          // CCW
+                    {
+                        gait = 1342;
+                    }
+                    else if (dist < 0.04 && input.yaw_target < 0)           // CW
+                    {
+                        gait = 1243;
+                    }
+                    else
+                    {
+                        gait = 1423;        // default
+                    }
                 }
                 body_simp temp_posture;
                 temp_posture.forward = progress * (pos_end.forward-pos_ini.forward) + pos_ini.forward;
@@ -568,6 +930,35 @@ void kinematics::walk_mgr(float &time_elapsed_)
                     if (walk_mode == MODE_END)
                     {
                         posture_neutral_request = true;
+                    }
+                    
+                    if (dist >= 0.04 && abs(input.x_target) >= abs(input.y_target) && input.x_target >= 0)              // FORWARD
+                    {
+                        gait = 1423;
+                    }
+                    else if (dist >= 0.04 && abs(input.x_target) >= abs(input.y_target) && input.x_target < 0)         // BACKWARD
+                    {
+                        gait = 1324;
+                    }
+                    else if (dist >= 0.04 && abs(input.x_target) < abs(input.y_target) && input.y_target >= 0)         // LEFT
+                    {
+                        gait = 1432;
+                    }
+                    else if (dist >= 0.04 && abs(input.x_target) < abs(input.y_target) && input.y_target < 0)         // RIGHT
+                    {
+                        gait = 1234;
+                    }
+                    else if (dist < 0.04 && input.yaw_target >= 0)          // CCW
+                    {
+                        gait = 1342;
+                    }
+                    else if (dist < 0.04 && input.yaw_target < 0)           // CW
+                    {
+                        gait = 1243;
+                    }
+                    else
+                    {
+                        gait = 1423;        // default
                     }
                 }
                 update_posture();
@@ -704,7 +1095,10 @@ void kinematics::update_gains(float kp_)
 
 void kinematics::debug_print()
 {
-    Serial.print("FL - x: ");
+    Serial.print("Gait:");
+    Serial.println(gait);
+
+    Serial.print("(1) FL - x: ");
     Serial.print(pos_now.tX_Ground2FL_end(0,3),4);
     Serial.print(", y: ");
     Serial.print(pos_now.tX_Ground2FL_end(1,3),4);
@@ -717,7 +1111,7 @@ void kinematics::debug_print()
     Serial.print(" KNEE: ");
     Serial.println(FL.knee_rad/PI_math*180);
 
-    Serial.print("FR - x: ");
+    Serial.print("(2) FR - x: ");
     Serial.print(pos_now.tX_Ground2FR_end(0,3),4);
     Serial.print(", y: ");
     Serial.print(pos_now.tX_Ground2FR_end(1,3),4);
@@ -730,7 +1124,7 @@ void kinematics::debug_print()
     Serial.print(" KNEE: ");
     Serial.println(FR.knee_rad/PI_math*180);
     
-    Serial.print("BL - x: ");
+    Serial.print("(3) BL - x: ");
     Serial.print(pos_now.tX_Ground2BL_end(0,3),4);
     Serial.print(", y: ");
     Serial.print(pos_now.tX_Ground2BL_end(1,3),4);
@@ -743,7 +1137,7 @@ void kinematics::debug_print()
     Serial.print(" KNEE: ");
     Serial.println(BL.knee_rad/PI_math*180);
     
-    Serial.print("BR - x: ");
+    Serial.print("(4) BR - x: ");
     Serial.print(pos_now.tX_Ground2BR_end(0,3),4);
     Serial.print(", y: ");
     Serial.print(pos_now.tX_Ground2BR_end(1,3),4);
@@ -836,11 +1230,11 @@ void kinematics::debug_print()
     }
     else if (current_state == STATE_POST)
     {
-        Serial.print("Pitch - target: ");
+        Serial.print("Pitch-target: ");
         Serial.print(pitch_target);
-        Serial.print(" Roll - target: ");
+        Serial.print(" Roll-target: ");
         Serial.print(roll_target);
-        Serial.print(" Yaw - target: ");
+        Serial.print(" Yaw-target: ");
         Serial.println(yaw_target);
     }
     // Serial.print(pos_end.forward,4);
